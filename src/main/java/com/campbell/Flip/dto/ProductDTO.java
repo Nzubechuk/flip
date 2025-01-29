@@ -7,6 +7,7 @@ public class ProductDTO {
     private String description;
     private Double price;
     private Integer stock;
+    private String productCode;
 
 
     public String getName() {
@@ -39,5 +40,13 @@ public class ProductDTO {
 
     public void setStock(Integer stock) {
         this.stock = stock;
+    }
+
+    public String getProductCode() {
+        return productCode;
+    }
+
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
     }
 }

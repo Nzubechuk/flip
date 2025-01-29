@@ -14,6 +14,9 @@ public class Product {
     private Double price;
     private Integer stock;
 
+    @Column(unique = true, nullable = true)
+    private String productCode;
+
     @ManyToOne
     @JoinColumn(name = "business_id", nullable = false)
     private Business business;
@@ -62,6 +65,14 @@ public class Product {
 
     public void setStock(Integer stock) {
         this.stock = stock;
+    }
+
+    public String getProductCode() {
+        return productCode;
+    }
+
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
     }
 
     public Business getBusiness() {
