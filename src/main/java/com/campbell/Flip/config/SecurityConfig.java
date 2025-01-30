@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/business/register").permitAll()
                         .requestMatchers("/api/business/**").hasAuthority("CEO")
-                        .requestMatchers("/api/products/**").hasAuthority("MANAGER")
+                        .requestMatchers("/api/products/**", "/api/analytics/**").hasAuthority("MANAGER")
                         .requestMatchers("/api/sales/**").hasAuthority("CLERK")
                         .anyRequest().authenticated()
                 )

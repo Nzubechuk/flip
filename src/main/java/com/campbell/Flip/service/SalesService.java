@@ -3,7 +3,10 @@ package com.campbell.Flip.service;
 import com.campbell.Flip.dto.SaleRequest;
 import com.campbell.Flip.entities.Product;
 import com.campbell.Flip.entities.Sale;
+import com.campbell.Flip.entities.SaleItem;
 import com.campbell.Flip.repository.ProductRepository;
+import com.campbell.Flip.repository.SalesRepository;
+import com.campbell.Flip.repository.SaleItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,40 +20,54 @@ public class SalesService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private SalesRepository salesRepository;
+
+    @Autowired
+    private SaleItemRepository saleItemRepository;
+
     public Sale processSale(SaleRequest saleRequest) {
-        List<Sale.SaleItem> saleItems = new ArrayList<>();
+        List<SaleItem> saleItems = new ArrayList<>();
         double totalPrice = 0;
 
-        for (SaleRequest.SaleItem item : saleRequest.getItems()) {
-            // Properly handle Optional<Product>
-            Product product = productRepository.findByProductCode(item.getProductCode())
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found with code: " + item.getProductCode()));
+        // ✅ Create Sale first
+        Sale sale = new Sale();
+        sale.setSaleDate(LocalDateTime.now());
 
-            // Check stock availability
+        for (SaleRequest.SaleItem item : saleRequest.getItems()) {
+            Product product = productRepository.findByProductCode(item.getProductCode())
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + item.getProductCode()));
+
             if (product.getStock() < item.getQuantity()) {
-                throw new IllegalArgumentException("Insufficient stock for product code: " + item.getProductCode());
+                throw new IllegalArgumentException("Insufficient stock for product: " + product.getProductCode());
             }
 
             // Deduct stock
             product.setStock(product.getStock() - item.getQuantity());
             productRepository.save(product);
 
-            // Add to sale items
-            Sale.SaleItem saleItem = new Sale.SaleItem();
+            // ✅ Create SaleItem and associate it with Sale
+            SaleItem saleItem = new SaleItem();
             saleItem.setProductCode(product.getProductCode());
-            saleItem.setName(product.getName()); // Optional: Include product name
+            saleItem.setName(product.getName());
             saleItem.setQuantity(item.getQuantity());
+            saleItem.setPrice(product.getPrice());
+            saleItem.setSale(sale); // ✅ Associate with Sale
+
             saleItems.add(saleItem);
 
             // Update total price
             totalPrice += product.getPrice() * item.getQuantity();
         }
 
-        // Create and return sale
-        Sale sale = new Sale();
+        // ✅ Save Sale
         sale.setItems(saleItems);
         sale.setTotalPrice(totalPrice);
-        sale.setSaleDate(LocalDateTime.now());
+        sale = salesRepository.save(sale); // Save Sale first to generate an ID
+
+        // ✅ Save SaleItems after Sale is persisted
+        saleItemRepository.saveAll(saleItems);
+
         return sale;
     }
 }

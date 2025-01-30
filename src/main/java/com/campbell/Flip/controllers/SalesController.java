@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,13 +39,22 @@ public class SalesController {
     }
 
     @PostMapping("/finalize")
-    public ResponseEntity<?> finalizeSale(@RequestBody SaleRequest saleRequest) {
+    public ResponseEntity<Map<String, Object>> finalizeSale(@RequestBody SaleRequest saleRequest) {
         Sale sale = salesService.processSale(saleRequest);
 
-        Map<String, Object> receipt = new HashMap<>();
-        receipt.put("totalPrice", sale.getTotalPrice());
-        receipt.put("items", sale.getItems());
-        receipt.put("date", sale.getSaleDate());
-        return ResponseEntity.ok(receipt);
+        // Extract item names from the sale object
+        List<String> itemNames = sale.getItems().stream()
+                .map(item -> item.getName()) // Assuming SaleItem has a getName() method
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalPrice", sale.getTotalPrice());
+        response.put("items", itemNames);
+        response.put("date", sale.getSaleDate());
+
+        return ResponseEntity.ok(response);
     }
+
+
+
 }
