@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/business")
 public class BusinessController {
@@ -43,6 +44,8 @@ public class BusinessController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerBusiness(@Validated @RequestBody BusinessDto businessDto) {
+        System.out.println("Received Payload: " + businessDto);
+
         // Validate CEO details
         if (businessDto.getCeo().getUsername() == null || businessDto.getCeo().getPassword() == null ||
                 businessDto.getCeo().getFirstname() == null || businessDto.getCeo().getLastname() == null ||

@@ -10,7 +10,7 @@ public class BusinessDto {
 
     private String businessRegNumber;
 
-    @NotNull
+    
     private UserDto ceo;
 
 
@@ -31,8 +31,12 @@ public class BusinessDto {
     }
 
     public UserDto getCeo() {
+        if (ceo == null) {
+            return new UserDto();
+        }
         return ceo;
     }
+
 
     public void setCeo(UserDto ceo) {
         this.ceo = ceo;
