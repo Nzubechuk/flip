@@ -2,12 +2,14 @@ package com.campbell.Flip.entities;
 
 import jakarta.persistence.*;
 
+import java.util.UUID;
+
 @Entity
 public class Product {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     private String name;
     private String description;
@@ -16,6 +18,12 @@ public class Product {
 
     @Column(unique = true, nullable = true)
     private String productCode;
+
+    @Column(unique = true, nullable = true)
+    private String upc; // Universal Product Code (12 digits)
+
+    @Column(unique = true, nullable = true)
+    private String ean13; // European Article Number (13 digits)
 
     @ManyToOne
     @JoinColumn(name = "business_id", nullable = false)
@@ -27,11 +35,11 @@ public class Product {
 
     // Getters and setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -73,6 +81,22 @@ public class Product {
 
     public void setProductCode(String productCode) {
         this.productCode = productCode;
+    }
+
+    public String getUpc() {
+        return upc;
+    }
+
+    public void setUpc(String upc) {
+        this.upc = upc;
+    }
+
+    public String getEan13() {
+        return ean13;
+    }
+
+    public void setEan13(String ean13) {
+        this.ean13 = ean13;
     }
 
     public Business getBusiness() {

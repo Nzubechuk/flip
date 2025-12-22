@@ -26,16 +26,43 @@ public class SalesController {
 
     @PostMapping("/scan")
     public ResponseEntity<?> addProductToCart(@RequestBody ScannedProductRequest request) {
-        Product product = productService.getProductCode(request.getProductCode());
-        if (product == null || product.getStock() < request.getQuantity()) {
-            return ResponseEntity.badRequest().body("Product not available or insufficient stock.");
-        }
+        try {
+            Product product;
+            
+            // Try to find product by barcode first (UPC/EAN-13), then by product code
+            String identifier = request.getProductCode();
+            if (identifier == null || identifier.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Product code or barcode is required");
+            }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("name", product.getName());
-        response.put("price", product.getPrice());
-        response.put("productCode", product.getProductCode());
-        return ResponseEntity.ok(response);
+            // Check if it's a barcode (12 or 13 digits)
+            String normalized = identifier.replaceAll("[^0-9]", "");
+            if (normalized.length() == 12 || normalized.length() == 13) {
+                // It's a barcode (UPC or EAN-13)
+                product = productService.getProductByBarcode(identifier);
+            } else {
+                // It's a product code
+                product = productService.getProductCode(identifier);
+            }
+
+            if (product == null || product.getStock() < request.getQuantity()) {
+                return ResponseEntity.badRequest().body("Product not available or insufficient stock.");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("productId", product.getId());
+            response.put("name", product.getName());
+            response.put("price", product.getPrice());
+            response.put("productCode", product.getProductCode());
+            response.put("upc", product.getUpc());
+            response.put("ean13", product.getEan13());
+            response.put("stock", product.getStock());
+            return ResponseEntity.ok(response);
+        } catch (com.campbell.Flip.service.ProductService.ProductNotFoundException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error scanning product: " + e.getMessage());
+        }
     }
 
     @PostMapping("/finalize")

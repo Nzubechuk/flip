@@ -4,16 +4,17 @@ import jakarta.persistence.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 public class Business {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = true)
     private String businessRegNumber;
 
     @OneToOne(cascade = CascadeType.ALL)
@@ -25,11 +26,11 @@ public class Business {
     @OneToMany(mappedBy = "business", cascade = CascadeType.ALL)
     private List<Branch> branches =    new ArrayList<>();
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

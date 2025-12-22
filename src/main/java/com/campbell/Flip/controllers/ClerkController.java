@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/clerks")
@@ -31,7 +32,7 @@ public class ClerkController {
     // Add Clerk
     @PostMapping("/branches/{branchId}/add")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<?> addClerk(@PathVariable Long branchId, @RequestBody WorkerDTO clerkDTO, Principal principal) {
+    public ResponseEntity<?> addClerk(@PathVariable UUID branchId, @RequestBody WorkerDTO clerkDTO, Principal principal) {
         Optional<Branch> branchOptional = branchRepository.findById(branchId);
 
         if (branchOptional.isEmpty()) {
@@ -60,7 +61,7 @@ public class ClerkController {
     // Update Clerk
     @PutMapping("/{clerkId}/update")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<?> updateClerk(@PathVariable Long clerkId, @RequestBody WorkerDTO clerkDTO, Principal principal) {
+    public ResponseEntity<?> updateClerk(@PathVariable UUID clerkId, @RequestBody WorkerDTO clerkDTO, Principal principal) {
         Optional<User> clerkOptional = userRepository.findById(clerkId);
 
         if (clerkOptional.isEmpty()) {
@@ -80,7 +81,7 @@ public class ClerkController {
     // Delete Clerk
     @DeleteMapping("/{clerkId}/delete")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<?> deleteClerk(@PathVariable Long clerkId, Principal principal) {
+    public ResponseEntity<?> deleteClerk(@PathVariable UUID clerkId, Principal principal) {
         Optional<User> clerkOptional = userRepository.findById(clerkId);
 
         if (clerkOptional.isEmpty()) {

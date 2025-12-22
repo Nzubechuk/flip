@@ -8,6 +8,8 @@ public class ProductDTO {
     private Double price;
     private Integer stock;
     private String productCode;
+    private String upc;
+    private String ean13;
 
 
     public String getName() {
@@ -48,5 +50,21 @@ public class ProductDTO {
 
     public void setProductCode(String productCode) {
         this.productCode = productCode;
+    }
+
+    public String getUpc() {
+        return upc;
+    }
+
+    public void setUpc(String upc) {
+        this.upc = upc;
+    }
+
+    public String getEan13() {
+        return ean13;
+    }
+
+    public void setEan13(String ean13) {
+        this.ean13 = ean13;
     }
 }

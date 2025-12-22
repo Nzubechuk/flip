@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -28,9 +30,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/business/register").permitAll()
-                        .requestMatchers("/api/business/**").hasAuthority("CEO")
-                        .requestMatchers("/api/products/**", "/api/analytics/**").hasAuthority("MANAGER")
-                        .requestMatchers("/api/sales/**").hasAuthority("CLERK")
+                        .requestMatchers("/api/business/**").hasRole("CEO")
+                        .requestMatchers("/api/products/**").hasAnyRole("MANAGER", "CEO")
+                        .requestMatchers("/api/analytics/**").hasAnyRole("MANAGER", "CEO")
+                        .requestMatchers("/api/sales/**").hasRole("CLERK")
                         .anyRequest().authenticated()
                 )
 

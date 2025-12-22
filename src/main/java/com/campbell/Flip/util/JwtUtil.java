@@ -3,11 +3,13 @@ package com.campbell.Flip.util;
 import com.campbell.Flip.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -22,12 +24,13 @@ public class JwtUtil {
 
     // Generate an access token
     public String generateAccessToken(User user) {
+        SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .signWith(key)
                 .compact();
     }
 
@@ -37,12 +40,13 @@ public class JwtUtil {
     }
 
     private String createToken(String subject, User user, long validity) {
+        SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .setSubject(subject)
                 .claim("role", user.getRole()) // Add role to claims
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + validity)) // Set expiration
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY) // Sign with HS256 algorithm and secret key
+                .signWith(key) // Sign with HS256 algorithm and secret key
                 .compact();
     }
 
@@ -57,8 +61,10 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         try {
-            return Jwts.parser()
-                    .setSigningKey(SECRET_KEY)
+            SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception e) {

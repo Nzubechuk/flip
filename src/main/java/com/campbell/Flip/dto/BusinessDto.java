@@ -31,9 +31,6 @@ public class BusinessDto {
     }
 
     public UserDto getCeo() {
-        if (ceo == null) {
-            return new UserDto();
-        }
         return ceo;
     }
 
