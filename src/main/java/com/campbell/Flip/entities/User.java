@@ -1,5 +1,6 @@
 package com.campbell.Flip.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -20,15 +21,25 @@ public class User {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
+
+    private boolean isVerified = false;
+
+    @JsonIgnore
+    private String verificationCode;
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "business_id")
+    @JsonIgnore
     private Business business;
 
     @ManyToOne
+    @JoinColumn(name = "branch_id")
+    @JsonIgnore
     private Branch branch;
 
     public UUID getId() {
@@ -101,5 +112,21 @@ public class User {
 
     public void setBranch(Branch branch) {
         this.branch = branch;
+    }
+
+    public boolean isVerified() {
+        return isVerified;
+    }
+
+    public void setVerified(boolean verified) {
+        isVerified = verified;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
     }
 }

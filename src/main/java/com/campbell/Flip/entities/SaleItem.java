@@ -19,6 +19,7 @@ public class SaleItem {
 
     @ManyToOne
     @JoinColumn(name = "sale_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Sale sale;
 
     // Getters and Setters

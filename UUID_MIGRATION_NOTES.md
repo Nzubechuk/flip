@@ -134,3 +134,4 @@ Where `{businessId}` is a UUID like: `550e8400-e29b-41d4-a716-446655440000`
 4. **Update any frontend code** to use UUID instead of Long
 
 
+

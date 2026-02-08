@@ -11,6 +11,9 @@ public class ProductDTO {
     private String upc;
     private String ean13;
 
+    private String category;
+    private java.util.UUID branchId;
+
 
     public String getName() {
         return name;
@@ -66,5 +69,21 @@ public class ProductDTO {
 
     public void setEan13(String ean13) {
         this.ean13 = ean13;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public java.util.UUID getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(java.util.UUID branchId) {
+        this.branchId = branchId;
     }
 }

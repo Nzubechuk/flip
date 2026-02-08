@@ -13,5 +13,13 @@ public interface SalesRepository extends JpaRepository<Sale, UUID> {
 
     List<Sale> findBySaleDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
+    List<Sale> findByBranchIdAndSaleDateBetween(UUID branchId, LocalDateTime startDate, LocalDateTime endDate);
+
+    List<Sale> findByBusinessIdAndSaleDateBetween(UUID businessId, LocalDateTime startDate, LocalDateTime endDate);
+
     long countBySaleDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+    long countByBranchIdAndSaleDateBetween(UUID branchId, LocalDateTime startDate, LocalDateTime endDate);
+
+    long countByBusinessIdAndSaleDateBetween(UUID businessId, LocalDateTime startDate, LocalDateTime endDate);
 }

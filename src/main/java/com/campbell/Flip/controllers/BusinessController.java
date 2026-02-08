@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,15 @@ public class BusinessController {
         ceo.setBusiness(business);
 
         // Save business (CEO will be saved automatically due to cascade)
-        businessRepository.save(business);
+        // But we also need to ensure the CEO's business field is persisted
+        business = businessRepository.save(business);
+        
+        // Refresh the CEO to ensure business relationship is loaded
+        ceo = userRepository.findById(ceo.getId()).orElse(ceo);
+        if (ceo.getBusiness() == null) {
+            ceo.setBusiness(business);
+            userRepository.save(ceo);
+        }
 
         // Return success response with CEO details (without password)
         Map<String, Object> response = new HashMap<>();
@@ -245,6 +254,7 @@ public class BusinessController {
             response.put("username", manager.getUsername());
             response.put("branchId", branch.getId());
             response.put("branchName", branch.getName());
+            response.put("role", manager.getRole().name());
 
             return ResponseEntity.ok(response);
         }
@@ -271,15 +281,28 @@ public class BusinessController {
             User manager = managerOptional.get();
 
             // Update manager details
-            if (workerDTO.getUsername() != null) {
-                if (userRepository.findByUsername(workerDTO.getUsername()).isPresent() &&
-                        !manager.getUsername().equals(workerDTO.getUsername())) {
+            if (workerDTO.getUsername() != null && !workerDTO.getUsername().trim().isEmpty()) {
+                Optional<User> existingUser = userRepository.findByUsername(workerDTO.getUsername().trim());
+                if (existingUser.isPresent() && !existingUser.get().getId().equals(managerId)) {
                     return ResponseEntity.badRequest().body("Username already exists");
                 }
-                manager.setUsername(workerDTO.getUsername());
+                manager.setUsername(workerDTO.getUsername().trim());
             }
-            if (workerDTO.getPassword() != null) {
+            if (workerDTO.getPassword() != null && !workerDTO.getPassword().trim().isEmpty()) {
                 manager.setPassword(passwordEncoder.encode(workerDTO.getPassword()));
+            }
+            if (workerDTO.getFirstname() != null && !workerDTO.getFirstname().trim().isEmpty()) {
+                manager.setFirstName(workerDTO.getFirstname().trim());
+            }
+            if (workerDTO.getLastname() != null && !workerDTO.getLastname().trim().isEmpty()) {
+                manager.setLastName(workerDTO.getLastname().trim());
+            }
+            if (workerDTO.getEmail() != null && !workerDTO.getEmail().trim().isEmpty()) {
+                Optional<User> existingEmail = userRepository.findByEmail(workerDTO.getEmail().trim());
+                if (existingEmail.isPresent() && !existingEmail.get().getId().equals(managerId)) {
+                    return ResponseEntity.badRequest().body("Email already exists");
+                }
+                manager.setEmail(workerDTO.getEmail().trim());
             }
 
             userRepository.save(manager);
@@ -409,6 +432,7 @@ public class BusinessController {
             managerInfo.put("username", manager.getUsername());
             managerInfo.put("firstName", manager.getFirstName());
             managerInfo.put("lastName", manager.getLastName());
+            managerInfo.put("role", manager.getRole().name());
             response.put("manager", managerInfo);
         }
 
@@ -588,6 +612,7 @@ public class BusinessController {
         response.put("firstName", manager.getFirstName());
         response.put("lastName", manager.getLastName());
         response.put("email", manager.getEmail());
+        response.put("role", manager.getRole().name());
         if (branch != null) {
             response.put("branchId", branch.getId());
             response.put("branchName", branch.getName());
@@ -679,12 +704,106 @@ public class BusinessController {
         response.put("firstName", clerk.getFirstName());
         response.put("lastName", clerk.getLastName());
         response.put("email", clerk.getEmail());
+        response.put("role", clerk.getRole().name());
         if (branch != null) {
             response.put("branchId", branch.getId());
             response.put("branchName", branch.getName());
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Update a CLERK user (CEO only)
+     */
+    @PutMapping("/{businessId}/clerk/{clerkId}/update")
+    @PreAuthorize("hasRole('CEO')")
+    public ResponseEntity<?> updateClerk(
+            @PathVariable UUID businessId,
+            @PathVariable UUID clerkId,
+            @RequestBody WorkerDTO workerDTO) {
+
+        // Validate business existence
+        Optional<Business> businessOptional = businessRepository.findById(businessId);
+        if (businessOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Business not found");
+        }
+
+        // Validate clerk existence and role
+        Optional<User> clerkOptional = userRepository.findById(clerkId);
+        if (clerkOptional.isEmpty() || clerkOptional.get().getRole() != Role.CLERK) {
+            return ResponseEntity.badRequest().body("Clerk not found or invalid role");
+        }
+
+        User clerk = clerkOptional.get();
+        
+        // Verify clerk belongs to this business
+        if (clerk.getBusiness() == null || !clerk.getBusiness().equals(businessOptional.get())) {
+            return ResponseEntity.badRequest().body("Clerk does not belong to this business");
+        }
+
+        // Update clerk details
+        if (workerDTO.getUsername() != null && !workerDTO.getUsername().trim().isEmpty()) {
+            Optional<User> existingUser = userRepository.findByUsername(workerDTO.getUsername().trim());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(clerkId)) {
+                return ResponseEntity.badRequest().body("Username already exists");
+            }
+            clerk.setUsername(workerDTO.getUsername().trim());
+        }
+        if (workerDTO.getPassword() != null && !workerDTO.getPassword().trim().isEmpty()) {
+            clerk.setPassword(passwordEncoder.encode(workerDTO.getPassword()));
+        }
+        if (workerDTO.getFirstname() != null && !workerDTO.getFirstname().trim().isEmpty()) {
+            clerk.setFirstName(workerDTO.getFirstname().trim());
+        }
+        if (workerDTO.getLastname() != null && !workerDTO.getLastname().trim().isEmpty()) {
+            clerk.setLastName(workerDTO.getLastname().trim());
+        }
+        if (workerDTO.getEmail() != null && !workerDTO.getEmail().trim().isEmpty()) {
+            Optional<User> existingEmail = userRepository.findByEmail(workerDTO.getEmail().trim());
+            if (existingEmail.isPresent() && !existingEmail.get().getId().equals(clerkId)) {
+                return ResponseEntity.badRequest().body("Email already exists");
+            }
+            clerk.setEmail(workerDTO.getEmail().trim());
+        }
+
+        userRepository.save(clerk);
+
+        return ResponseEntity.ok("Clerk updated successfully");
+    }
+
+    /**
+     * Delete a CLERK user (CEO only)
+     */
+    @DeleteMapping("/{businessId}/clerk/{clerkId}/delete")
+    @PreAuthorize("hasRole('CEO')")
+    public ResponseEntity<?> deleteClerk(
+            @PathVariable UUID businessId,
+            @PathVariable UUID clerkId) {
+
+        // Validate business existence
+        Optional<Business> businessOptional = businessRepository.findById(businessId);
+        if (businessOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Business not found");
+        }
+
+        // Validate clerk existence and role
+        Optional<User> clerkOptional = userRepository.findById(clerkId);
+        if (clerkOptional.isEmpty() || clerkOptional.get().getRole() != Role.CLERK) {
+            return ResponseEntity.badRequest().body("Clerk not found or invalid role");
+        }
+
+        User clerk = clerkOptional.get();
+        
+        // Verify clerk belongs to this business
+        if (clerk.getBusiness() == null || !clerk.getBusiness().equals(businessOptional.get())) {
+            return ResponseEntity.badRequest().body("Clerk does not belong to this business");
+        }
+
+        // Delete the clerk
+        userRepository.delete(clerk);
+
+        return ResponseEntity.ok("Clerk deleted successfully");
     }
 
     /**
@@ -708,6 +827,7 @@ public class BusinessController {
             managerData.put("firstName", manager.getFirstName());
             managerData.put("lastName", manager.getLastName());
             managerData.put("email", manager.getEmail());
+            managerData.put("role", manager.getRole().name());
             if (manager.getBranch() != null) {
                 managerData.put("branchId", manager.getBranch().getId());
                 managerData.put("branchName", manager.getBranch().getName());
@@ -739,12 +859,63 @@ public class BusinessController {
             clerkData.put("firstName", clerk.getFirstName());
             clerkData.put("lastName", clerk.getLastName());
             clerkData.put("email", clerk.getEmail());
+            clerkData.put("role", clerk.getRole().name());
             if (clerk.getBranch() != null) {
                 clerkData.put("branchId", clerk.getBranch().getId());
                 clerkData.put("branchName", clerk.getBranch().getName());
             }
             return clerkData;
         }).toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get current CEO's business info
+     */
+    @GetMapping("/my-business")
+    @PreAuthorize("hasRole('CEO')")
+    public ResponseEntity<?> getMyBusiness(Principal principal) {
+        Optional<User> userOptional = userRepository.findByUsername(principal.getName());
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "User not found", "message", "The authenticated user was not found in the database"));
+        }
+
+        User ceo = userOptional.get();
+        
+        // For CEO, try to find business by CEO relationship
+        // First try: get from user's business relationship
+        Business business = ceo.getBusiness();
+        
+        // Second try: if business is null, try to find business where this user is CEO
+        // This handles cases where the bidirectional relationship wasn't properly saved
+        if (business == null) {
+            Optional<Business> businessByCeo = businessRepository.findByCeo(ceo);
+            if (businessByCeo.isPresent()) {
+                business = businessByCeo.get();
+                // Update the user's business relationship for future queries
+                ceo.setBusiness(business);
+                userRepository.saveAndFlush(ceo);
+            }
+        }
+        
+        // Third try: reload user with business relationship using entity manager if needed
+        // (This is a fallback - should not be needed if relationships are properly set)
+        
+        if (business == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                "error", "Business not found",
+                "message", "No business is associated with this CEO account. Please ensure you registered a business account."
+            ));
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("businessId", business.getId().toString());
+        response.put("businessName", business.getName());
+        if (business.getBusinessRegNumber() != null) {
+            response.put("businessRegNumber", business.getBusinessRegNumber());
+        }
+        response.put("ceoId", ceo.getId().toString());
 
         return ResponseEntity.ok(response);
     }

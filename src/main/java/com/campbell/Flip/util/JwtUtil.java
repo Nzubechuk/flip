@@ -25,9 +25,14 @@ public class JwtUtil {
     // Generate an access token
     public String generateAccessToken(User user) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        String branchId = user.getBranch() != null ? user.getBranch().getId().toString() : null;
+        String businessId = user.getBusiness() != null ? user.getBusiness().getId().toString() : null;
+
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
+                .claim("branchId", branchId)
+                .claim("businessId", businessId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
                 .signWith(key)
@@ -41,9 +46,14 @@ public class JwtUtil {
 
     private String createToken(String subject, User user, long validity) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        String branchId = user.getBranch() != null ? user.getBranch().getId().toString() : null;
+        String businessId = user.getBusiness() != null ? user.getBusiness().getId().toString() : null;
+
         return Jwts.builder()
                 .setSubject(subject)
                 .claim("role", user.getRole()) // Add role to claims
+                .claim("branchId", branchId)
+                .claim("businessId", businessId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + validity)) // Set expiration
                 .signWith(key) // Sign with HS256 algorithm and secret key

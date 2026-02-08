@@ -1,5 +1,6 @@
 package com.campbell.Flip.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -18,12 +19,15 @@ public class Business {
     private String businessRegNumber;
 
     @OneToOne(cascade = CascadeType.ALL)
+    @JsonIgnore
     private User ceo;
 
     @OneToMany(mappedBy = "business", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<User> workers = new ArrayList<>();
-
+    
     @OneToMany(mappedBy = "business", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Branch> branches =    new ArrayList<>();
 
     public UUID getId() {

@@ -33,7 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/business/**").hasRole("CEO")
                         .requestMatchers("/api/products/**").hasAnyRole("MANAGER", "CEO")
                         .requestMatchers("/api/analytics/**").hasAnyRole("MANAGER", "CEO")
-                        .requestMatchers("/api/sales/**").hasRole("CLERK")
+                        .requestMatchers("/api/sales/**").hasAnyRole("CLERK", "CEO")
                         .anyRequest().authenticated()
                 )
 

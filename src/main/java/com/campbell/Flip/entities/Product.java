@@ -25,6 +25,8 @@ public class Product {
     @Column(unique = true, nullable = true)
     private String ean13; // European Article Number (13 digits)
 
+    private String category;
+
     @ManyToOne
     @JoinColumn(name = "business_id", nullable = false)
     private Business business;
@@ -97,6 +99,14 @@ public class Product {
 
     public void setEan13(String ean13) {
         this.ean13 = ean13;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public Business getBusiness() {

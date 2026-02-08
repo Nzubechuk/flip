@@ -1,5 +1,6 @@
 package com.campbell.Flip.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -17,12 +18,15 @@ public class Branch {
     private String location;
 
     @ManyToOne
+    @JsonIgnore
     private User manager;
 
     @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<User> users;
-
+    
     @ManyToOne
+    @JsonIgnore
     private Business business;
 
 

@@ -21,6 +21,14 @@ public class Sale {
     private double totalPrice;
     private LocalDateTime saleDate;
 
+    @ManyToOne
+    @JoinColumn(name = "business_id")
+    private Business business;
+
+    @ManyToOne
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
+
     public UUID getId() {
         return id;
     }
@@ -53,5 +61,19 @@ public class Sale {
         this.saleDate = saleDate;
     }
 
+    public Business getBusiness() {
+        return business;
+    }
 
+    public void setBusiness(Business business) {
+        this.business = business;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
+    }
 }

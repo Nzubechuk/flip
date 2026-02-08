@@ -58,6 +58,14 @@ public class SalesService {
 
             // Update total price
             totalPrice += product.getPrice() * item.getQuantity();
+
+            // Set business and branch for the sale from the first product
+            if (sale.getBusiness() == null) {
+                sale.setBusiness(product.getBusiness());
+            }
+            if (sale.getBranch() == null) {
+                sale.setBranch(product.getBranch());
+            }
         }
 
         // ✅ Save Sale

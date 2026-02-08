@@ -42,39 +42,85 @@ public class ProductController {
     private ProductService productService;
 
     // Add Product
-    @PostMapping("/{branchId}/add")
-    @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<?> addProduct(@PathVariable UUID branchId, @RequestBody ProductDTO productDTO, Principal principal) {
-        Optional<Branch> branchOptional = branchRepository.findById(branchId);
-
-        if (branchOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body("Branch not found");
+    @PostMapping("/add")
+    @PreAuthorize("hasAnyRole('MANAGER', 'CEO')")
+    public ResponseEntity<?> addProduct(@RequestBody ProductDTO productDTO, Principal principal) {
+        
+        Optional<User> userOptional = userRepository.findByUsername(principal.getName());
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(403).body("User not found");
         }
+        User currentUser = userOptional.get();
 
-        Branch branch = branchOptional.get();
+        Branch branch = null;
+        Business business = currentUser.getBusiness(); // Default to user's business
 
-        Business business = branch.getBusiness();
-        if (business == null) {
-            return ResponseEntity.badRequest().body("Branch is not associated with any business");
-        }
-
-        // Validate manager access
-        // If branch has a manager, only that manager can add products
-        // If branch has no manager, allow any MANAGER from the same business
-        if (branch.getManager() != null) {
-            if (!branch.getManager().getUsername().equals(principal.getName())) {
-                return ResponseEntity.status(403).body("Unauthorized to manage this branch");
+        // Determine Branch
+        if (productDTO.getBranchId() != null) {
+            Optional<Branch> branchOptional = branchRepository.findById(productDTO.getBranchId());
+            if (branchOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body("Branch not found");
             }
+            branch = branchOptional.get();
+            business = branch.getBusiness(); // Use branch's business
         } else {
-            // Branch has no manager - verify user is a MANAGER from the same business
-            Optional<User> userOptional = userRepository.findByUsername(principal.getName());
-            if (userOptional.isEmpty() || userOptional.get().getRole() != Role.MANAGER) {
-                return ResponseEntity.status(403).body("Only managers can add products to branches without assigned managers");
+            // No branch ID provided
+            if (currentUser.getRole() == Role.MANAGER) {
+                // Manager MUST have a branch inferred if not provided
+                // Find branch where this user is manager
+                // Note: Branch entity has 'manager' field. We need to query Branch repository by manager
+                // Assuming efficient way or bidirectional, but here let's assume Manager user object doesn't have list of branches directly?
+                // Actually Branch has 'manager_id'.
+                // Ideally, we iterate businesses branches or query.
+                // Simplified: User should have a way to know their branch?
+                // Let's assume for now if Manager doesn't provide ID, we try to find it via business or deny?
+                // Re-reading user request: "no need for select branch... it should just be for the assigned manager branch"
+                // So we need to find the branch managed by this user.
+                
+                // Let's implement a quick lookup or check if we can get it from context.
+                // For now, let's assume we can fetch it.
+                // Since BranchRepository is available:
+                List<Branch> managedBranches = branchRepository.findAll().stream()
+                    .filter(b -> b.getManager() != null && b.getManager().getId().equals(currentUser.getId()))
+                    .toList();
+                
+                if (managedBranches.isEmpty()) {
+                    return ResponseEntity.badRequest().body("You are a Manager but not assigned to any branch.");
+                }
+                branch = managedBranches.get(0); // Assume 1 branch per manager
+                business = branch.getBusiness();
+            } else if (currentUser.getRole() == Role.CEO) {
+                // CEO can add product without branch (global/business level)
+                // Just ensure they have a business
+                if (business == null) {
+                    return ResponseEntity.status(403).body("CEO must be associated with a business");
+                }
+                // branch stays null
             }
-            User user = userOptional.get();
-            if (user.getBusiness() == null || !user.getBusiness().equals(business)) {
-                return ResponseEntity.status(403).body("Manager must belong to the same business as the branch");
+        }
+
+        // Validate Access
+        if (business == null) {
+             return ResponseEntity.badRequest().body("Business context not found");
+        }
+        
+        if (currentUser.getRole() == Role.CEO) {
+            if (!currentUser.getBusiness().equals(business)) {
+                 return ResponseEntity.status(403).body("Unauthorized to add products to this business");
             }
+        } else if (currentUser.getRole() == Role.MANAGER) {
+             // Manager must belong to same business and (if branch exists) manage it
+             if (!currentUser.getBusiness().equals(business)) {
+                 return ResponseEntity.status(403).body("Unauthorized: Different business");
+             }
+             if (branch != null && (branch.getManager() == null || !branch.getManager().getId().equals(currentUser.getId()))) {
+                  // Fallback: If managed branch is just one of the business branches but not THE manager?
+                  // Previous logic allowed any Manager of the business to add if branch has no manager. Keep that logic?
+                  // Stick to: If user provided a branch ID, they must be authorized for it.
+                  if (branch.getManager() != null && !branch.getManager().getId().equals(currentUser.getId())) {
+                      return ResponseEntity.status(403).body("Unauthorized to manage this specific branch");
+                  }
+             }
         }
 
         Product product = new Product();
@@ -85,8 +131,9 @@ public class ProductController {
         product.setProductCode(productDTO.getProductCode());
         product.setUpc(productDTO.getUpc());
         product.setEan13(productDTO.getEan13());
+        product.setCategory(productDTO.getCategory());
         product.setBranch(branch);
-        product.setBusiness(business); // Link the product to the business
+        product.setBusiness(business); 
 
         productRepository.save(product);
         return ResponseEntity.ok("Product added successfully");
@@ -94,7 +141,7 @@ public class ProductController {
 
     // Update Product
     @PutMapping("/{productId}/update")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'CEO')")
     public ResponseEntity<?> updateProduct(@PathVariable UUID productId, @RequestBody ProductDTO productDTO, Principal principal) {
         Optional<Product> productOptional = productRepository.findById(productId);
 
@@ -105,19 +152,29 @@ public class ProductController {
         Product product = productOptional.get();
         Branch branch = product.getBranch();
 
-        // Validate manager access
-        if (branch.getManager() != null) {
+        // Validate manager/CEO access
+        Optional<User> userOptional = userRepository.findByUsername(principal.getName());
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(403).body("User not found");
+        }
+        User currentUser = userOptional.get();
+        
+        // CEO can update any product in their business
+        if (currentUser.getRole() == Role.CEO) {
+            if (currentUser.getBusiness() == null || !currentUser.getBusiness().equals(product.getBusiness())) {
+                return ResponseEntity.status(403).body("Unauthorized to manage this product");
+            }
+        } else if (branch.getManager() != null) {
+            // Manager can update products in their assigned branch
             if (!branch.getManager().getUsername().equals(principal.getName())) {
                 return ResponseEntity.status(403).body("Unauthorized to manage this product");
             }
         } else {
             // Branch has no manager - verify user is a MANAGER from the same business
-            Optional<User> userOptional = userRepository.findByUsername(principal.getName());
-            if (userOptional.isEmpty() || userOptional.get().getRole() != Role.MANAGER) {
+            if (currentUser.getRole() != Role.MANAGER) {
                 return ResponseEntity.status(403).body("Only managers can update products in branches without assigned managers");
             }
-            User user = userOptional.get();
-            if (user.getBusiness() == null || !user.getBusiness().equals(product.getBusiness())) {
+            if (currentUser.getBusiness() == null || !currentUser.getBusiness().equals(product.getBusiness())) {
                 return ResponseEntity.status(403).body("Manager must belong to the same business as the product");
             }
         }
@@ -127,6 +184,7 @@ public class ProductController {
         product.setPrice(productDTO.getPrice());
         product.setStock(productDTO.getStock());
         product.setProductCode(productDTO.getProductCode());
+        product.setCategory(productDTO.getCategory());
 
         productRepository.save(product);
         return ResponseEntity.ok("Product updated successfully");
@@ -134,7 +192,7 @@ public class ProductController {
 
     // Delete Product
     @DeleteMapping("/{productId}/delete")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'CEO')")
     public ResponseEntity<?> deleteProduct(@PathVariable UUID productId, Principal principal) {
         Optional<Product> productOptional = productRepository.findById(productId);
 
@@ -145,19 +203,29 @@ public class ProductController {
         Product product = productOptional.get();
         Branch branch = product.getBranch();
 
-        // Validate manager access
-        if (branch.getManager() != null) {
+        // Validate manager/CEO access
+        Optional<User> userOptional = userRepository.findByUsername(principal.getName());
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(403).body("User not found");
+        }
+        User currentUser = userOptional.get();
+        
+        // CEO can delete any product in their business
+        if (currentUser.getRole() == Role.CEO) {
+            if (currentUser.getBusiness() == null || !currentUser.getBusiness().equals(product.getBusiness())) {
+                return ResponseEntity.status(403).body("Unauthorized to delete this product");
+            }
+        } else if (branch.getManager() != null) {
+            // Manager can delete products in their assigned branch
             if (!branch.getManager().getUsername().equals(principal.getName())) {
                 return ResponseEntity.status(403).body("Unauthorized to delete this product");
             }
         } else {
             // Branch has no manager - verify user is a MANAGER from the same business
-            Optional<User> userOptional = userRepository.findByUsername(principal.getName());
-            if (userOptional.isEmpty() || userOptional.get().getRole() != Role.MANAGER) {
+            if (currentUser.getRole() != Role.MANAGER) {
                 return ResponseEntity.status(403).body("Only managers can delete products in branches without assigned managers");
             }
-            User user = userOptional.get();
-            if (user.getBusiness() == null || !user.getBusiness().equals(product.getBusiness())) {
+            if (currentUser.getBusiness() == null || !currentUser.getBusiness().equals(product.getBusiness())) {
                 return ResponseEntity.status(403).body("Manager must belong to the same business as the product");
             }
         }
@@ -206,7 +274,47 @@ public class ProductController {
             return ResponseEntity.status(403).body("Unauthorized to view products in this branch");
         }
 
-        List<Product> products = productRepository.findByBranch(branch);
+            List<Product> products = productRepository.findByBranch(branch);
+
+            List<Map<String, Object>> response = products.stream().map(product -> {
+                Map<String, Object> productData = new HashMap<>();
+                productData.put("productId", product.getId());
+                productData.put("name", product.getName());
+                productData.put("description", product.getDescription());
+                productData.put("price", product.getPrice());
+                productData.put("stock", product.getStock());
+                productData.put("stock", product.getStock());
+                productData.put("productCode", product.getProductCode());
+                productData.put("category", product.getCategory());
+                productData.put("branchId", product.getBranch().getId());
+                return productData;
+            }).toList();
+
+            Map<String, Object> branchData = new HashMap<>();
+            branchData.put("branchName", branch.getName());
+            branchData.put("products", response);
+
+            return ResponseEntity.ok(branchData);
+    }
+
+    // List All Products for a Business (CEO)
+    @GetMapping("/business/{businessId}/all")
+    @PreAuthorize("hasRole('CEO')")
+    public ResponseEntity<?> listProductsByBusiness(@PathVariable UUID businessId, Principal principal) {
+        Optional<Business> businessOptional = businessRepository.findById(businessId);
+
+        if (businessOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Business not found");
+        }
+
+        Business business = businessOptional.get();
+
+        // Validate CEO access
+        if (business.getCeo() == null || !business.getCeo().getUsername().equals(principal.getName())) {
+            return ResponseEntity.status(403).body("Unauthorized to view products in this business");
+        }
+
+        List<Product> products = productRepository.findByBusinessId(businessId);
 
         List<Map<String, Object>> response = products.stream().map(product -> {
             Map<String, Object> productData = new HashMap<>();
@@ -216,15 +324,13 @@ public class ProductController {
             productData.put("price", product.getPrice());
             productData.put("stock", product.getStock());
             productData.put("productCode", product.getProductCode());
-            productData.put("branchId", product.getBranch().getId());
+            productData.put("category", product.getCategory());
+            productData.put("branchId", product.getBranch() != null ? product.getBranch().getId() : null);
+            productData.put("branchName", product.getBranch() != null ? product.getBranch().getName() : "Global/No Branch");
             return productData;
         }).toList();
 
-        Map<String, Object> branchData = new HashMap<>();
-        branchData.put("branchName", branch.getName());
-        branchData.put("products", response);
-
-        return ResponseEntity.ok(branchData);
+        return ResponseEntity.ok(response);
     }
 
     private boolean isCeoOfBusiness(String ceoUsername, String principalName) {
@@ -259,6 +365,7 @@ public class ProductController {
         productData.put("price", product.getPrice());
         productData.put("stock", product.getStock());
         productData.put("productCode", product.getProductCode());
+        productData.put("category", product.getCategory());
 
         return ResponseEntity.ok(productData);
     }
@@ -277,6 +384,7 @@ public class ProductController {
             productResponse.put("price", updatedProduct.getPrice());
             productResponse.put("stock", updatedProduct.getStock());
             productResponse.put("productCode", updatedProduct.getProductCode());
+            productResponse.put("category", updatedProduct.getCategory());
 
             return ResponseEntity.ok(productResponse);
         } catch (Exception e) {
@@ -368,6 +476,7 @@ public class ProductController {
             
             // Create product from barcode info
             Product product = productService.createProductFromBarcode(barcodeInfo, branchId, price, stock);
+            product.setCategory(barcodeInfo.getCategory());
             product.setBranch(branch);
             product.setBusiness(business);
 
@@ -381,6 +490,7 @@ public class ProductController {
             response.put("productCode", savedProduct.getProductCode());
             response.put("upc", savedProduct.getUpc());
             response.put("ean13", savedProduct.getEan13());
+            response.put("category", savedProduct.getCategory());
             
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
