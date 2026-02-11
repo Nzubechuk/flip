@@ -27,11 +27,14 @@ class ApiConfig {
   // Option 2: iOS Simulator (uncomment this if using iOS Simulator)
   // static const String baseUrl = 'http://localhost:8080';
   
-  // Option 3: Physical Device (ACTIVE - using your IP: 192.168.1.137)
-  static const String baseUrl = 'http://192.168.1.137:8080';
+  // Option 3: Physical Device (Commented out)
+  // static const String baseUrl = 'http://192.168.1.137:8080';
   
   // Option 4: Web Browser (uncomment this if running in web browser)
   // static const String baseUrl = 'http://localhost:8080';
+
+  // Option 5: Production (Railway)
+  static const String baseUrl = 'https://flip-production-118c.up.railway.app';
   
   // API Endpoints
   static const String authLogin = '/api/auth/login';
