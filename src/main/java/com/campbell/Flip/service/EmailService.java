@@ -1,33 +1,47 @@
 package com.campbell.Flip.service;
 
+import com.resend.Resend;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
+import com.resend.core.exception.ResendException;
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import jakarta.annotation.PostConstruct;
 
 @Service
-@RequiredArgsConstructor
 public class EmailService {
-    
-    private final JavaMailSender javaMailSender;
 
-    @Value("${spring.mail.username}")
-    private String senderEmail;
+    @Value("${resend.api.key}")
+    private String resendApiKey;
+
+    private Resend resend;
+
+    @PostConstruct
+    public void init() {
+        this.resend = new Resend(resendApiKey);
+    }
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(senderEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            javaMailSender.send(message);
-            System.out.println("EMAIL SENT TO: " + to);
-        } catch (Exception e) {
-            System.err.println("ERROR SENDING EMAIL: " + e.getMessage());
+            // "onboarding@resend.dev" is the default sender for testing.
+            // Once you verify your domain on Resend, you can change this to "support@flipapp.ng" etc.
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("Flip App <onboarding@resend.dev>")
+                .to(to)
+                .subject(subject)
+                .text(body)
+                .build();
+
+            CreateEmailResponse data = resend.emails().send(params);
+            System.out.println("EMAIL SENT VIA RESEND. ID: " + data.getId());
+        } catch (ResendException e) {
+            System.err.println("RESEND API ERROR: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Failed to send email to " + to + ": " + e.getMessage(), e);
+            throw new RuntimeException("Failed to send email via Resend: " + e.getMessage(), e);
+        } catch (Exception e) {
+            System.err.println("UNEXPECTED EMAIL ERROR: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Unexpected error sending email", e);
         }
     }
 
