@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../models/debt.dart';
 import '../models/business.dart';
 import '../models/user.dart';
 import '../models/product.dart';
@@ -21,6 +22,7 @@ class BusinessProvider with ChangeNotifier {
   List<User> _managers = [];
   List<User> _clerks = [];
   List<Product> _allProducts = [];
+  List<Debt> _debts = [];
   double _totalDebtsAmount = 0.0;
   double _dailySalesTotal = 0.0;
   bool _isLoading = false;
@@ -33,6 +35,7 @@ class BusinessProvider with ChangeNotifier {
   List<User> get managers => _managers;
   List<User> get clerks => _clerks;
   List<Product> get allProducts => _allProducts;
+  List<Debt> get debts => _debts;
   double get totalDebtsAmount => _totalDebtsAmount;
   double get dailySalesTotal => _dailySalesTotal;
   bool get isLoading => _isLoading;
@@ -62,6 +65,7 @@ class BusinessProvider with ChangeNotifier {
         // Ensure tokens are synced if needed, but ApiService is shared in main.dart
       }
       final debts = await _debtService.getDebtsByBusiness(businessId);
+      _debts = debts;
       _totalDebtsAmount = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
 
       // Load daily sales
@@ -174,6 +178,14 @@ class BusinessProvider with ChangeNotifier {
       _clerks[index] = updatedClerk;
       notifyListeners();
     }
+  }
+
+  List<Debt> getDebtsForDate(DateTime date) {
+    return _debts.where((debt) {
+      return debt.createdAt.year == date.year &&
+             debt.createdAt.month == date.month &&
+             debt.createdAt.day == date.day;
+    }).toList();
   }
 }
 

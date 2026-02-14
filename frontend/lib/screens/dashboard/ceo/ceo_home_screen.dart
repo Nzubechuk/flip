@@ -15,6 +15,7 @@ import '../products/receipts_list_screen.dart';
 import '../debts/debts_screen.dart';
 import '../../../utils/responsive_helper.dart';
 import '../../../utils/currency_formatter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CeoHomeScreen extends StatefulWidget {
   final String businessId;
@@ -281,6 +282,16 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         () => _navigateToReceiptsList(context),
                       ),
                     ),
+                    SizedBox(
+                      width: (constraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount,
+                      child: _buildActionCard(
+                        context,
+                        'Daily Report',
+                        Icons.share,
+                        const Color(0xFF8B5CF6), // Purple
+                        () => _sendDailyReport(context),
+                      ),
+                    ),
                   ],
                 );
               },
@@ -338,12 +349,54 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     }
   }
 
-  void _navigateToReceiptsList(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ReceiptsListScreen(businessId: widget.businessId),
-      ),
-    );
+
+
+
+
+  Future<void> _sendDailyReport(BuildContext context) async {
+    final businessProvider = context.read<BusinessProvider>();
+    final salesTotal = businessProvider.dailySalesTotal;
+    final today = DateTime.now();
+    final debts = businessProvider.getDebtsForDate(today);
+    final debtsTotal = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
+
+    final dateStr = '${today.day}/${today.month}/${today.year}';
+    
+    final StringBuffer message = StringBuffer();
+    message.writeln('*Daily Report - $dateStr*');
+    message.writeln('--------------------------------');
+    message.writeln('*Total Sales:* ${CurrencyFormatter.format(salesTotal)}');
+    message.writeln('*Total Debts:* ${CurrencyFormatter.format(debtsTotal)}');
+    message.writeln('--------------------------------');
+    
+    if (debts.isNotEmpty) {
+      message.writeln('\n*Debts Details:*');
+      for (var debt in debts) {
+        message.writeln('- ${debt.consumerName}: ${CurrencyFormatter.format(debt.totalAmount)}');
+      }
+    } else {
+      message.writeln('\nNo debts recorded today.');
+    }
+
+    final String url = 'https://wa.me/?text=${Uri.encodeComponent(message.toString())}';
+    
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      } else {
+         if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch WhatsApp')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error launching report: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildStatCard(
