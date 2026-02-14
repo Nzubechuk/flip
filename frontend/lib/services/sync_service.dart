@@ -5,6 +5,7 @@ import 'api_service.dart';
 import 'sales_service.dart';
 import 'debt_service.dart';
 import '../models/sale.dart';
+import '../models/product.dart';
 
 class SyncService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -23,6 +24,7 @@ class SyncService {
     debugPrint('Starting synchronization...');
 
     try {
+      await _syncProducts();
       await _syncSales();
       if (businessId != null) {
         await _syncDebts(businessId);
@@ -32,6 +34,47 @@ class SyncService {
       debugPrint('Error during synchronization: $e');
     } finally {
       _isSyncing = false;
+    }
+  }
+
+  Future<void> _syncProducts() async {
+    final pendingProducts = await _dbHelper.getPendingProducts();
+    if (pendingProducts.isEmpty) return;
+    
+    debugPrint('Syncing ${pendingProducts.length} pending products...');
+
+    for (var productMap in pendingProducts) {
+      try {
+        final id = productMap['id'] as int;
+        final productId = productMap['productId'] as String;
+        final action = productMap['action'] as String;
+        final productJson = productMap['productJson'] as String;
+        
+        // Handle empty productJson for delete action
+        Product? product;
+        if (productJson.isNotEmpty && productJson != '{}') {
+           product = Product.fromJson(jsonDecode(productJson));
+        }
+
+        if (action == 'create' && product != null) {
+           await _apiService.post('/api/products/add', product.toJson());
+           await _dbHelper.deletePendingProduct(id);
+           // Remove temporary local product
+           await _dbHelper.deleteProduct(productId);
+           debugPrint('Product create synced: $productId');
+        } else if (action == 'update' && product != null) {
+           await _apiService.put('/api/products/$productId/update', product.toJson());
+           await _dbHelper.deletePendingProduct(id);
+           debugPrint('Product update synced: $productId');
+        } else if (action == 'delete') {
+           await _apiService.delete('/api/products/$productId/delete');
+           await _dbHelper.deletePendingProduct(id);
+           await _dbHelper.deleteProduct(productId);
+           debugPrint('Product delete synced: $productId');
+        }
+      } catch (e) {
+        debugPrint('Failed to sync product action: $e');
+      }
     }
   }
 

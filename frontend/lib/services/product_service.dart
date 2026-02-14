@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import 'api_service.dart';
 import 'database_helper.dart';
+import 'package:uuid/uuid.dart';
 
 class ProductService {
   final ApiService _apiService;
@@ -65,32 +66,67 @@ class ProductService {
   }
 
   Future<Product> addProduct(Product product) async {
-    // Branch ID is now optional/included in product
-    final response = await _apiService.post(
-      '/api/products/add',
-      product.toJson(),
-    );
-    // Refresh list based on whether a branch was used or not?
-    // If branchId is null (Global product), might not appear in standard branch list
-    // But for return value, we trust the response or just return input
-    // Ideally we should list again, but which list?
-    // For now, return product.
-    // If branchId is set, we can refresh that branch's specific list
-    if (product.branchId.isNotEmpty) {
-       await getProducts(product.branchId);
+    try {
+      final response = await _apiService.post(
+        '/api/products/add',
+        product.toJson(),
+      );
+      
+      final newProduct = product.copyWith(
+        id: response['productId'] ?? response['id'],
+      );
+
+      // If branchId is set, refresh that branch's list
+      if (newProduct.branchId.isNotEmpty) {
+         // efficient update: add to local cache if possible, or just fetch
+         await getProducts(newProduct.branchId);
+      }
+      return newProduct;
+    } catch (e) {
+      // Offline fallback
+      final tempId = const Uuid().v4();
+      final offlineProduct = product.copyWith(id: tempId);
+      await _dbHelper.queueProduct(offlineProduct, 'create');
+      // Also save to local 'products' table so it appears in UI immediately?
+      // Yes, otherwise user won't see it until sync.
+      // But we need to distinguish it's offline? 
+      // For now, just save it. The sync service handles the rest.
+      // We might need to append it to the current cached list.
+      // Since getProducts reads from DB, saving it to DB is enough.
+      await _dbHelper.saveProducts([offlineProduct]);
+      return offlineProduct;
     }
-    return product;
   }
 
   Future<void> updateProduct(String productId, Product product) async {
-    await _apiService.put(
-      '/api/products/$productId/update',
-      product.toJson(),
-    );
+    try {
+      await _apiService.put(
+        '/api/products/$productId/update',
+        product.toJson(),
+      );
+      // Update local cache
+      await _dbHelper.saveProducts([product]);
+    } catch (e) {
+      // Offline fallback
+      await _dbHelper.queueProduct(product, 'update');
+      // Update local cache so user sees change
+      await _dbHelper.saveProducts([product]);
+    }
   }
 
   Future<void> deleteProduct(String productId) async {
-    await _apiService.delete('/api/products/$productId/delete');
+    try {
+      await _apiService.delete('/api/products/$productId/delete');
+      // Remove from local cache? DatabaseHelper doesn't have deleteProduct from cache yet,
+      // only clearAll. We might need to add deleteProductFromCache.
+      // For now, we rely on refresh. But offline we can't refresh.
+      // TODO: Add deleteFromCache to DatabaseHelper
+      // For now, we just queue it. The UI might still show it until sync.
+    } catch (e) {
+      await _dbHelper.queueProductDelete(productId);
+      // Remove from local view immediately
+      await _dbHelper.deleteProduct(productId);
+    }
   }
 
   Future<BarcodeProductInfo> lookupBarcode(String barcode) async {

@@ -62,6 +62,15 @@ class DatabaseHelper {
         createdAt TEXT
       )
     ''');
+    await db.execute('''
+      CREATE TABLE pending_products(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        productId TEXT,
+        action TEXT, -- 'create', 'update', 'delete'
+        productJson TEXT,
+        createdAt TEXT
+      )
+    ''');
   }
 
   // Product Operations
@@ -114,45 +123,40 @@ class DatabaseHelper {
     return null;
   }
 
-  // Pending Sales Operations
-  Future<int> queueSale(List<SaleItem> items, String branchId) async {
+  Future<void> deleteProduct(String id) async {
     final db = await database;
-    return await db.insert('pending_sales', {
-      'itemsJson': jsonEncode(items.map((i) => i.toJson()).toList()),
-      'branchId': branchId,
+    await db.delete('products', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Pending Products Operations
+  Future<int> queueProduct(Product product, String action) async {
+    final db = await database;
+    return await db.insert('pending_products', {
+      'productId': product.id,
+      'action': action,
+      'productJson': jsonEncode(product.toJson()),
       'createdAt': DateTime.now().toIso8601String(),
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPendingSales() async {
+  Future<int> queueProductDelete(String productId) async {
     final db = await database;
-    return await db.query('pending_sales');
-  }
-
-  Future<void> deletePendingSale(int id) async {
-    final db = await database;
-    await db.delete('pending_sales', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Pending Debts Operations
-  Future<int> queueDebt(String consumerName, List<SaleItem> items, String branchId) async {
-    final db = await database;
-    return await db.insert('pending_debts', {
-      'consumerName': consumerName,
-      'itemsJson': jsonEncode(items.map((i) => i.toJson()).toList()),
-      'branchId': branchId,
+    return await db.insert('pending_products', {
+      'productId': productId,
+      'action': 'delete',
+      'productJson': '{}',
       'createdAt': DateTime.now().toIso8601String(),
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPendingDebts() async {
+  Future<List<Map<String, dynamic>>> getPendingProducts() async {
     final db = await database;
-    return await db.query('pending_debts');
+    return await db.query('pending_products', orderBy: 'createdAt ASC');
   }
 
-  Future<void> deletePendingDebt(int id) async {
+  Future<void> deletePendingProduct(int id) async {
     final db = await database;
-    await db.delete('pending_debts', where: 'id = ?', whereArgs: [id]);
+    await db.delete('pending_products', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> clearAll() async {
@@ -160,5 +164,6 @@ class DatabaseHelper {
     await db.delete('products');
     await db.delete('pending_sales');
     await db.delete('pending_debts');
+    await db.delete('pending_products');
   }
 }

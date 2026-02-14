@@ -32,7 +32,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
   int _clerksCount = 0;
   int _productsCount = 0;
   double _totalRevenue = 0.0;
-  double _totalDebts = 0.0;
+
+  double _dailySalesTotal = 0.0;
   bool _isLoading = true;
 
   @override
@@ -58,7 +59,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         _managersCount = businessProvider.managers.length;
         _clerksCount = businessProvider.clerks.length;
         _productsCount = businessProvider.allProducts.length;
-        _totalDebts = businessProvider.totalDebtsAmount;
+        _productsCount = businessProvider.allProducts.length;
+        _dailySalesTotal = businessProvider.dailySalesTotal;
         _isLoading = false;
       });
     } catch (e) {
@@ -212,10 +214,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 ),
                 _buildStatCard(
                   context,
-                  'Total Debts',
-                  CurrencyFormatter.format(_totalDebts),
-                  Icons.money_off_outlined,
-                  const Color(0xFFEF4444), // red
+                  'Daily Sales',
+                  CurrencyFormatter.format(_dailySalesTotal),
+                  Icons.show_chart,
+                  const Color(0xFFF59E0B), // amber
                   null,
                 ),
                   ],

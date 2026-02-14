@@ -6,11 +6,13 @@ import '../services/business_service.dart';
 import '../services/product_service.dart';
 import '../services/api_service.dart';
 import '../services/debt_service.dart';
+import '../services/analytics_service.dart';
 
 class BusinessProvider with ChangeNotifier {
   final BusinessService _businessService;
   final ProductService _productService;
   final DebtService _debtService;
+  final AnalyticsService _analyticsService;
   final ApiService _apiService;
   
   
@@ -20,10 +22,11 @@ class BusinessProvider with ChangeNotifier {
   List<User> _clerks = [];
   List<Product> _allProducts = [];
   double _totalDebtsAmount = 0.0;
+  double _dailySalesTotal = 0.0;
   bool _isLoading = false;
   String? _errorMessage;
 
-  BusinessProvider(this._businessService, this._productService, this._debtService, this._apiService);
+  BusinessProvider(this._businessService, this._productService, this._debtService, this._analyticsService, this._apiService);
 
   Business? get business => _business;
   List<Branch> get branches => _branches;
@@ -31,6 +34,7 @@ class BusinessProvider with ChangeNotifier {
   List<User> get clerks => _clerks;
   List<Product> get allProducts => _allProducts;
   double get totalDebtsAmount => _totalDebtsAmount;
+  double get dailySalesTotal => _dailySalesTotal;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -59,6 +63,11 @@ class BusinessProvider with ChangeNotifier {
       }
       final debts = await _debtService.getDebtsByBusiness(businessId);
       _totalDebtsAmount = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
+
+      // Load daily sales
+      final now = DateTime.now();
+      // Using same start/end date gets sales for that specific day
+      _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now); // Global for business
 
       notifyListeners();
     } catch (e) {

@@ -11,6 +11,7 @@ import 'services/product_service.dart';
 import 'services/sales_service.dart';
 import 'services/debt_service.dart';
 import 'services/sync_service.dart';
+import 'services/analytics_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
@@ -32,6 +33,7 @@ class FlipApp extends StatelessWidget {
     final productService = ProductService(apiService);
     final salesService = SalesService(apiService);
     final debtService = DebtService(apiService);
+    final analyticsService = AnalyticsService(apiService);
     final syncService = SyncService(apiService, salesService, debtService);
 
     return MultiProvider(
@@ -43,7 +45,7 @@ class FlipApp extends StatelessWidget {
           create: (_) => ConnectivityProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => BusinessProvider(businessService, productService, debtService, apiService),
+          create: (_) => BusinessProvider(businessService, productService, debtService, analyticsService, apiService),
         ),
         ChangeNotifierProvider(
           create: (_) => SyncProvider(syncService),

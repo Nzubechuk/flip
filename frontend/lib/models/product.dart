@@ -41,8 +41,37 @@ class Product {
     );
   }
 
+  Product copyWith({
+    String? id,
+    String? name,
+    String? description,
+    double? price,
+    int? stock,
+    String? productCode,
+    String? upc,
+    String? ean13,
+    String? branchId,
+    String? branchName,
+    String? category,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      stock: stock ?? this.stock,
+      productCode: productCode ?? this.productCode,
+      upc: upc ?? this.upc,
+      ean13: ean13 ?? this.ean13,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
+      category: category ?? this.category,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'description': description,
       'price': price,
