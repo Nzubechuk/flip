@@ -282,6 +282,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         () => _navigateToReceiptsList(context),
                       ),
                     ),
+                    /*
                     SizedBox(
                       width: (constraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount,
                       child: _buildActionCard(
@@ -292,6 +293,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         () => _sendDailyReport(context),
                       ),
                     ),
+                    */
                   ],
                 );
               },
@@ -347,6 +349,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     if (result == true && mounted) {
       _loadDashboardData();
     }
+  }
+
+  void _navigateToReceiptsList(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ReceiptsListScreen(businessId: widget.businessId),
+      ),
+    );
   }
 
 

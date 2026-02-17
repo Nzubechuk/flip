@@ -159,6 +159,47 @@ class DatabaseHelper {
     await db.delete('pending_products', where: 'id = ?', whereArgs: [id]);
   }
 
+  // Pending Sales Operations
+  Future<int> queueSale(List<dynamic> items, String branchId) async {
+    final db = await database;
+    return await db.insert('pending_sales', {
+      'itemsJson': jsonEncode(items),
+      'branchId': branchId,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingSales() async {
+    final db = await database;
+    return await db.query('pending_sales', orderBy: 'createdAt ASC');
+  }
+
+  Future<void> deletePendingSale(int id) async {
+    final db = await database;
+    await db.delete('pending_sales', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Pending Debts Operations
+  Future<int> queueDebt(String consumerName, List<dynamic> items, String branchId) async {
+    final db = await database;
+    return await db.insert('pending_debts', {
+      'consumerName': consumerName,
+      'itemsJson': jsonEncode(items),
+      'branchId': branchId,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingDebts() async {
+    final db = await database;
+    return await db.query('pending_debts', orderBy: 'createdAt ASC');
+  }
+
+  Future<void> deletePendingDebt(int id) async {
+    final db = await database;
+    await db.delete('pending_debts', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<void> clearAll() async {
     final db = await database;
     await db.delete('products');

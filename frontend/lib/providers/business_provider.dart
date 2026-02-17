@@ -71,7 +71,7 @@ class BusinessProvider with ChangeNotifier {
       // Load daily sales
       final now = DateTime.now();
       // Using same start/end date gets sales for that specific day
-      _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now); // Global for business
+      _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now.add(const Duration(days: 1))); // Global for business
 
       notifyListeners();
     } catch (e) {
