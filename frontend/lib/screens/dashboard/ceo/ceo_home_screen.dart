@@ -27,14 +27,13 @@ class CeoHomeScreen extends StatefulWidget {
 }
 
 class _CeoHomeScreenState extends State<CeoHomeScreen> {
-  Business? _business;
-  int _branchesCount = 0;
-  int _managersCount = 0;
-  int _clerksCount = 0;
-  int _productsCount = 0;
-  double _totalRevenue = 0.0;
-
-  double _dailySalesTotal = 0.0;
+  // Business? _business; // Use provider
+  // int _branchesCount = 0;
+  // int _managersCount = 0;
+  // int _clerksCount = 0;
+  // int _productsCount = 0;
+  // double _totalRevenue = 0.0;
+  // double _dailySalesTotal = 0.0;
   bool _isLoading = true;
 
   @override
@@ -54,14 +53,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       // Load business data
       await businessProvider.loadBusinessData(widget.businessId);
       
+      // No need to set local state, we'll watch provider
       setState(() {
-        _business = businessProvider.business;
-        _branchesCount = businessProvider.branches.length;
-        _managersCount = businessProvider.managers.length;
-        _clerksCount = businessProvider.clerks.length;
-        _productsCount = businessProvider.allProducts.length;
-        _productsCount = businessProvider.allProducts.length;
-        _dailySalesTotal = businessProvider.dailySalesTotal;
         _isLoading = false;
       });
     } catch (e) {
@@ -81,6 +74,13 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final businessProvider = context.watch<BusinessProvider>();
+    final business = businessProvider.business;
+    final branchesCount = businessProvider.branches.length;
+    final staffCount = businessProvider.managers.length + businessProvider.clerks.length;
+    final productsCount = businessProvider.allProducts.length;
+    final dailySalesTotal = businessProvider.dailySalesTotal;
 
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
@@ -132,7 +132,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _business?.name ?? 'Business',
+                                business?.name ?? 'Business',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -180,7 +180,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 _buildStatCard(
                   context,
                   'Branches',
-                  _branchesCount.toString(),
+                  branchesCount.toString(),
                   Icons.store_outlined,
                   const Color(0xFF3B82F6), // accentBlue
                   () {
@@ -194,7 +194,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 _buildStatCard(
                   context,
                   'Active staff',
-                  (_managersCount + _clerksCount).toString(),
+                  staffCount.toString(),
                   Icons.people_alt_outlined,
                   const Color(0xFF10B981), // emeraldGreen
                   () {
@@ -208,7 +208,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                  _buildStatCard(
                   context,
                   'Products',
-                  _productsCount.toString(),
+                  productsCount.toString(),
                   Icons.inventory_2_outlined,
                   const Color(0xFF8B5CF6), // purple
                   null,
@@ -216,7 +216,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 _buildStatCard(
                   context,
                   'Daily Sales',
-                  CurrencyFormatter.format(_dailySalesTotal),
+                  CurrencyFormatter.format(dailySalesTotal),
                   Icons.show_chart,
                   const Color(0xFFF59E0B), // amber
                   null,

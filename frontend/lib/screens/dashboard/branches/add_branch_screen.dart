@@ -46,6 +46,7 @@ class _AddBranchScreenState extends State<AddBranchScreen> {
           return;
         }
 
+        /*
         final apiService = ApiService();
         if (authProvider.accessToken != null) {
           apiService.setAccessToken(authProvider.accessToken!);
@@ -58,11 +59,19 @@ class _AddBranchScreenState extends State<AddBranchScreen> {
           _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
           null,
         );
+        */
+
+        await businessProvider.createBranch(
+           _nameController.text.trim(),
+           _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+           null,
+        );
 
         if (!mounted) return;
         
         // Refresh business provider
-        await businessProvider.refreshBranches();
+        // No longer needed
+        // await businessProvider.refreshBranches();
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Branch created successfully')),

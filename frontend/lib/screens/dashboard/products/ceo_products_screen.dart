@@ -227,7 +227,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
               );
               
               if (result == true && mounted) {
-                businessProvider.refresh();
+                // businessProvider.refresh(); // Not needed as AddProduct updates locally
               }
             },
             icon: const Icon(Icons.add),
@@ -418,8 +418,8 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
       ),
     );
     if (result == true && mounted) {
-      final businessProvider = context.read<BusinessProvider>();
-      await businessProvider.refreshAllProducts();
+      // final businessProvider = context.read<BusinessProvider>();
+      // await businessProvider.refreshAllProducts(); // Not needed as EditProduct updates locally
     }
   }
 
@@ -449,18 +449,10 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
 
   Future<void> _deleteProduct(Product product) async {
     try {
-      final authProvider = context.read<AuthProvider>();
-      final apiService = ApiService();
-      if (authProvider.accessToken != null) {
-        apiService.setAccessToken(authProvider.accessToken!);
-      }
-      final productService = ProductService(apiService);
-
-      await productService.deleteProduct(product.id);
+      final businessProvider = context.read<BusinessProvider>();
+      await businessProvider.deleteProduct(product.id);
       
       if (mounted) {
-        final businessProvider = context.read<BusinessProvider>();
-        businessProvider.removeProduct(product.id);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product deleted successfully')),
         );

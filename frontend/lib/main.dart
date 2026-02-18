@@ -45,7 +45,7 @@ class FlipApp extends StatelessWidget {
           create: (_) => ConnectivityProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => BusinessProvider(businessService, productService, debtService, analyticsService, apiService),
+          create: (_) => BusinessProvider(businessService, productService, debtService, analyticsService, apiService, salesService),
         ),
         ChangeNotifierProvider(
           create: (_) => SyncProvider(syncService),

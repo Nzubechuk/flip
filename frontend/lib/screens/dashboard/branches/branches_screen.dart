@@ -20,165 +20,109 @@ class BranchesScreen extends StatefulWidget {
 }
 
 class _BranchesScreenState extends State<BranchesScreen> {
-  List<Branch> _branches = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
-    if (widget.businessId != null) {
-      _loadBranches();
-    } else {
-      _loadBranchesFromProvider();
-    }
+    // business provider already loaded in parent (CeoHomeScreen)
+    // or we could trigger load here if needed, but watch() handles updates
   }
 
-  Future<void> _loadBranches() async {
-    if (widget.businessId == null) return;
-    
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
+  // _loadBranchesFromProvider removed
+  
+  Future<void> _refreshBranches() async {
     try {
-      final authProvider = context.read<AuthProvider>();
-      final apiService = ApiService();
-      if (authProvider.accessToken != null) {
-        apiService.setAccessToken(authProvider.accessToken!);
-      }
-      final businessService = BusinessService(apiService);
-
-      _branches = await businessService.getBranches(widget.businessId!);
+      await context.read<BusinessProvider>().refreshBranches();
     } catch (e) {
-      setState(() {
-        _errorMessage = ErrorHandler.formatException(e);
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadBranchesFromProvider() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
-      if (businessProvider.businessId != null) {
-        await businessProvider.loadBusinessData(businessProvider.businessId!);
-        _branches = businessProvider.branches;
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error refreshing branches: $e')),
+        );
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = ErrorHandler.formatException(e);
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final businessProvider = context.watch<BusinessProvider>();
+    final branches = businessProvider.branches;
+    final isLoading = businessProvider.isLoading;
+    
+    // If provider has data, use it. Otherwise wait for load or refresh.
+
     return Scaffold(
-      body: _isLoading
+      body: isLoading && branches.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadBranches,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          : RefreshIndicator(
+              onRefresh: () async {
+                await businessProvider.loadBusinessData(widget.businessId ?? businessProvider.businessId!);
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: Text(
+                      'Manage Branches',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadBranches,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                        child: Text(
-                          'Manage Branches',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: _branches.isEmpty
-                            ? Center(
-                                child: SingleChildScrollView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.store_outlined,
-                                        size: 64,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No branches yet',
-                                        style: Theme.of(context).textTheme.titleLarge,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Add your first branch to get started',
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: branches.isEmpty
+                        ? Center(
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.store_outlined,
+                                    size: 64,
+                                    color: Colors.grey.shade400,
                                   ),
-                                ),
-                              )
-                            : LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final crossAxisCount = ResponsiveHelper.getGridCrossAxisCount(context);
-                                  if (crossAxisCount > 1) {
-                                    return GridView.builder(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: crossAxisCount,
-                                        crossAxisSpacing: 16,
-                                        mainAxisSpacing: 16,
-                                        childAspectRatio: 1.3,
-                                      ),
-                                      itemCount: _branches.length,
-                                      itemBuilder: (context, index) => _buildBranchCard(_branches[index]),
-                                    );
-                                  }
-                                  return ListView.builder(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    itemCount: _branches.length,
-                                    itemBuilder: (context, index) => _buildBranchCard(_branches[index]),
-                                  );
-                                },
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No branches yet',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Add your first branch to get started',
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ],
                               ),
-                      ),
-                    ],
+                            ),
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final crossAxisCount = ResponsiveHelper.getGridCrossAxisCount(context);
+                              if (crossAxisCount > 1) {
+                                return GridView.builder(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    childAspectRatio: 1.3,
+                                  ),
+                                  itemCount: branches.length,
+                                  itemBuilder: (context, index) => _buildBranchCard(branches[index]),
+                                );
+                              }
+                              return ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                itemCount: branches.length,
+                                itemBuilder: (context, index) => _buildBranchCard(branches[index]),
+                              );
+                            },
+                          ),
                   ),
-                ),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.of(context).push(
@@ -187,7 +131,9 @@ class _BranchesScreenState extends State<BranchesScreen> {
             ),
           );
           if (result == true) {
-            _loadBranches();
+            // AddBranch updates provider directly, so no refresh needed usually.
+            // But to be safe or if update failed:
+            // _refreshBranches(); 
           }
         },
         icon: const Icon(Icons.add),
@@ -340,7 +286,7 @@ class _BranchesScreenState extends State<BranchesScreen> {
       ),
     );
     if (result == true) {
-      _loadBranches();
+      _refreshBranches();
     }
   }
 
@@ -370,31 +316,13 @@ class _BranchesScreenState extends State<BranchesScreen> {
 
   Future<void> _deleteBranch(Branch branch) async {
     try {
-      final authProvider = context.read<AuthProvider>();
       final businessProvider = context.read<BusinessProvider>();
-      final businessId = widget.businessId ?? businessProvider.businessId;
-      
-      if (businessId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Business ID not found')),
-        );
-        return;
-      }
-
-      final apiService = ApiService();
-      if (authProvider.accessToken != null) {
-        apiService.setAccessToken(authProvider.accessToken!);
-      }
-      final businessService = BusinessService(apiService);
-
-      await businessService.deleteBranch(businessId, branch.id);
+      await businessProvider.deleteBranch(branch.id);
       
       if (mounted) {
-        await businessProvider.refreshBranches();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Branch deleted successfully')),
         );
-        _loadBranches();
       }
     } catch (e) {
       if (mounted) {

@@ -55,14 +55,15 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
           return;
         }
 
+        /*
         final apiService = ApiService();
         if (authProvider.accessToken != null) {
           apiService.setAccessToken(authProvider.accessToken!);
         }
         final businessService = BusinessService(apiService);
+        */
 
-        await businessService.updateBranch(
-          businessId,
+        await businessProvider.updateBranch(
           widget.branch.id,
           _nameController.text.trim(),
           _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
@@ -70,7 +71,7 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
 
         if (!mounted) return;
         
-        await businessProvider.refreshBranches();
+        // await businessProvider.refreshBranches();
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Branch updated successfully')),

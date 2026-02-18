@@ -64,12 +64,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
     });
 
     try {
+      /*
+      // Removed direct service usage
       final authProvider = context.read<AuthProvider>();
       final apiService = ApiService();
       if (authProvider.accessToken != null) {
         apiService.setAccessToken(authProvider.accessToken!);
       }
       final productService = ProductService(apiService);
+      */
 
       final product = Product(
         id: '',
@@ -92,13 +95,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
         category: _categoryController.text.trim().isEmpty ? null : _categoryController.text.trim(),
       );
 
-      await productService.addProduct(product);
+      // await productService.addProduct(product);
+      final businessProvider = context.read<BusinessProvider>();
+      await businessProvider.createProduct(product);
 
       if (!mounted) return;
 
       // Refresh business provider to update product list
-      final businessProvider = context.read<BusinessProvider>();
-      await businessProvider.refreshAllProducts();
+      // No longer needed as createProduct updates local state
+      // await businessProvider.refreshAllProducts();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Product added successfully')),

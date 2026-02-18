@@ -77,6 +77,24 @@ class Branch {
       'managerId': managerId,
     };
   }
+
+  Branch copyWith({
+    String? id,
+    String? name,
+    String? location,
+    String? businessId,
+    String? managerId,
+    String? managerName,
+  }) {
+    return Branch(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      location: location ?? this.location,
+      businessId: businessId ?? this.businessId,
+      managerId: managerId ?? this.managerId,
+      managerName: managerName ?? this.managerName,
+    );
+  }
 }
 
 

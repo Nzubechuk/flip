@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/business_provider.dart';
 import '../../../services/product_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/product.dart';
@@ -63,12 +64,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
     });
 
     try {
+      /*
       final authProvider = context.read<AuthProvider>();
       final apiService = ApiService();
       if (authProvider.accessToken != null) {
         apiService.setAccessToken(authProvider.accessToken!);
       }
       final productService = ProductService(apiService);
+      */
 
       final updatedProduct = Product(
         id: widget.product.id,
@@ -87,7 +90,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
         branchName: widget.product.branchName,
       );
 
-      await productService.updateProduct(widget.product.id, updatedProduct);
+      // await productService.updateProduct(widget.product.id, updatedProduct);
+      final businessProvider = context.read<BusinessProvider>();
+      await businessProvider.updateProduct(updatedProduct);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

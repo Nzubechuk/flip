@@ -181,6 +181,7 @@ class _PosScreenState extends State<PosScreen> {
     }
 
     try {
+      /*
       final authProvider = context.read<AuthProvider>();
       final apiService = ApiService();
       if (authProvider.accessToken != null) {
@@ -189,6 +190,10 @@ class _PosScreenState extends State<PosScreen> {
       final salesService = SalesService(apiService);
 
       final sale = await salesService.finalizeSale(_cart);
+      */
+      
+      final businessProvider = context.read<BusinessProvider>();
+      final sale = await businessProvider.processSale(_cart, _selectedBranchId);
 
       if (!mounted) return;
 
@@ -210,7 +215,8 @@ class _PosScreenState extends State<PosScreen> {
               onPressed: () {
                 _cart.clear();
                 _total = 0.0;
-                _selectedBranchId = null;
+                // Keep the selected branch for CEO to continue selling
+                // _selectedBranchId = null; 
                 Navigator.pop(context);
                 setState(() {});
               },

@@ -8,6 +8,8 @@ import '../services/product_service.dart';
 import '../services/api_service.dart';
 import '../services/debt_service.dart';
 import '../services/analytics_service.dart';
+import '../services/sales_service.dart';
+import '../models/sale.dart';
 
 class BusinessProvider with ChangeNotifier {
   final BusinessService _businessService;
@@ -15,6 +17,7 @@ class BusinessProvider with ChangeNotifier {
   final DebtService _debtService;
   final AnalyticsService _analyticsService;
   final ApiService _apiService;
+  final SalesService _salesService;
   
   
   Business? _business;
@@ -28,7 +31,7 @@ class BusinessProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  BusinessProvider(this._businessService, this._productService, this._debtService, this._analyticsService, this._apiService);
+  BusinessProvider(this._businessService, this._productService, this._debtService, this._analyticsService, this._apiService, this._salesService);
 
   Business? get business => _business;
   List<Branch> get branches => _branches;
@@ -186,6 +189,107 @@ class BusinessProvider with ChangeNotifier {
              debt.createdAt.month == date.month &&
              debt.createdAt.day == date.day;
     }).toList();
+  }
+
+  // Reactive Update Methods
+
+  Future<void> createProduct(Product product) async {
+    try {
+      final newProduct = await _productService.addProduct(product);
+      _allProducts.add(newProduct);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> createBranch(String name, String? location, String? managerId) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      final newBranch = await _businessService.createBranch(_business!.id, name, location, managerId);
+      _branches.add(newBranch);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Sale> processSale(List<SaleItem> items, String? branchId) async {
+    try {
+      // Calculate total for local update
+      final totalAmount = items.fold(0.0, (sum, item) => sum + item.subtotal);
+      
+      final sale = await _salesService.finalizeSale(items);
+      
+      // Update daily sales local state
+      _dailySalesTotal += totalAmount;
+
+      // Update local product stock
+      // Note: This only updates the list in memory. 
+      // Ideally we should match products by ID and update stock.
+      for (var item in items) {
+        final index = _allProducts.indexWhere((p) => p.id == item.productId);
+        if (index != -1) {
+          final product = _allProducts[index];
+          // Determine new stock
+          final newStock = product.stock - item.quantity;
+          _allProducts[index] = product.copyWith(stock: newStock >= 0 ? newStock : 0);
+        }
+      }
+      
+      notifyListeners();
+      return sale;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateProduct(Product product) async {
+    try {
+      await _productService.updateProduct(product.id, product);
+      final index = _allProducts.indexWhere((p) => p.id == product.id);
+      if (index != -1) {
+        _allProducts[index] = product;
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    try {
+      await _productService.deleteProduct(productId);
+      _allProducts.removeWhere((p) => p.id == productId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateBranch(String branchId, String name, String? location) async {
+    if (_business?.id == null) return;
+    try {
+      await _businessService.updateBranch(_business!.id, branchId, name, location);
+      final index = _branches.indexWhere((b) => b.id == branchId);
+      if (index != -1) {
+        _branches[index] = _branches[index].copyWith(name: name, location: location);
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteBranch(String branchId) async {
+    if (_business?.id == null) return;
+    try {
+      await _businessService.deleteBranch(_business!.id, branchId);
+      _branches.removeWhere((b) => b.id == branchId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 }
 

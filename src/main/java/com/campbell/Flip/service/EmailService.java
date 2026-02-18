@@ -14,6 +14,9 @@ public class EmailService {
     @Value("${resend.api.key}")
     private String resendApiKey;
 
+    @Value("${resend.from.email}")
+    private String resendFromEmail;
+
     private Resend resend;
 
     @PostConstruct
@@ -23,10 +26,9 @@ public class EmailService {
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            // "onboarding@resend.dev" is the default sender for testing.
-            // Once you verify your domain on Resend, you can change this to "support@flipapp.ng" etc.
+            // Use the configured sender email (e.g., "Flip Support <support@yourdomain.com>")
             CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("Flip App <onboarding@resend.dev>")
+                .from(resendFromEmail)
                 .to(to)
                 .subject(subject)
                 .text(body)
