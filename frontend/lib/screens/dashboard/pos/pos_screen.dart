@@ -29,6 +29,16 @@ class _PosScreenState extends State<PosScreen> {
   double _total = 0.0;
   String? _selectedBranchId;
 
+  /// Whether the CEO needs to select a branch before selling.
+  /// False when CEO has no branches (branchless business) or already selected one.
+  bool get _needsBranchSelection {
+    final authProvider = context.read<AuthProvider>();
+    final businessProvider = context.read<BusinessProvider>();
+    return authProvider.user?.role == UserRole.ceo &&
+           businessProvider.branches.isNotEmpty &&
+           _selectedBranchId == null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -119,12 +129,14 @@ class _PosScreenState extends State<PosScreen> {
       return;
     }
     
-    // For CEO, show branch selection dialog
+    // For CEO with no branches, proceed directly — backend gets branch from product
     if (branches.isEmpty) {
-      UiHelper.showError(context, 'No branches available');
+      _selectedBranchId = 'direct';
+      _finalizeSale();
       return;
     }
     
+    // For CEO with branches, show branch selection dialog
     final selectedBranch = await showDialog<Branch>(
       context: context,
       builder: (context) => AlertDialog(
@@ -274,10 +286,7 @@ class _PosScreenState extends State<PosScreen> {
     final authProvider = context.watch<AuthProvider>();
     final branches = businessProvider.branches;
     
-    // For CEO, show branch selector if no branch selected
-    final showBranchSelector = authProvider.user?.role == UserRole.ceo && 
-                               _selectedBranchId == null && 
-                               branches.isNotEmpty;
+    final showBranchSelector = _needsBranchSelection;
 
     final isMobile = ResponsiveHelper.isMobile(context);
 
@@ -420,7 +429,8 @@ class _PosScreenState extends State<PosScreen> {
           ),
         if (authProvider.user?.role == UserRole.ceo && 
             _selectedBranchId != null && 
-            branches.isNotEmpty)
+            branches.isNotEmpty &&
+            branches.any((b) => b.id == _selectedBranchId))
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.green.shade50,
@@ -477,14 +487,14 @@ class _PosScreenState extends State<PosScreen> {
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         onSubmitted: (value) {
-          if (value.isNotEmpty && (authProvider.user?.role != UserRole.ceo || _selectedBranchId != null)) {
+          if (value.isNotEmpty && !_needsBranchSelection) {
             _scanProduct(value.trim());
-          } else if (value.isNotEmpty && authProvider.user?.role == UserRole.ceo && _selectedBranchId == null) {
+          } else if (value.isNotEmpty && _needsBranchSelection) {
             UiHelper.showInfo(context, 'Please select a branch first');
           }
         },
         autofocus: true,
-        enabled: authProvider.user?.role != UserRole.ceo || _selectedBranchId != null,
+        enabled: !_needsBranchSelection,
       ),
     );
   }
@@ -501,13 +511,13 @@ class _PosScreenState extends State<PosScreen> {
                   size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 16),
               Text(
-                (authProvider.user?.role == UserRole.ceo && _selectedBranchId == null)
+                _needsBranchSelection
                     ? 'Select a branch to start selling'
                     : 'No items in cart',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              if (authProvider.user?.role != UserRole.ceo || _selectedBranchId != null)
+              if (!_needsBranchSelection)
                 Text(
                   'Scan or enter barcode to add products',
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -642,13 +652,13 @@ class _PosScreenState extends State<PosScreen> {
             child: ElevatedButton(
               onPressed: _cart.isEmpty 
                   ? null 
-                  : (_selectedBranchId == null && authProvider.user?.role == UserRole.ceo)
+                  : _needsBranchSelection
                       ? _selectBranchForSale
                       : _finalizeSale,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text(_selectedBranchId == null && authProvider.user?.role == UserRole.ceo
+              child: Text(_needsBranchSelection
                   ? 'Select Branch & Complete Sale'
                   : 'Complete Sale'),
             ),

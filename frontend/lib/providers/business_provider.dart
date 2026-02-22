@@ -291,5 +291,151 @@ class BusinessProvider with ChangeNotifier {
       rethrow;
     }
   }
+  Future<void> createManager(String username, String password, String firstName, String lastName, String email, String? branchId) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      final newUser = await _businessService.registerManager(
+        _business!.id,
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+        branchId,
+      );
+      _managers.add(newUser);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> createClerk(String username, String password, String firstName, String lastName, String email, String? branchId) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      final newUser = await _businessService.registerClerk(
+        _business!.id,
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+        branchId,
+      );
+      _clerks.add(newUser);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateManagerData(
+    String managerId,
+    String username,
+    String? password,
+    String? firstName,
+    String? lastName,
+    String? email,
+  ) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      await _businessService.updateManager(
+        _business!.id,
+        managerId,
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+      );
+      
+      final index = _managers.indexWhere((m) => m.userId == managerId);
+      if (index != -1) {
+        final current = _managers[index];
+        _managers[index] = User(
+          userId: current.userId,
+          username: username,
+          firstName: firstName ?? current.firstName,
+          lastName: lastName ?? current.lastName,
+          email: email ?? current.email,
+          role: current.role,
+          businessId: current.businessId,
+          branchId: current.branchId, // Branch update not supported in this API call
+          branchName: current.branchName,
+        );
+        notifyListeners();
+      } else {
+        // Fallback if not found locally
+        await refreshManagers();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateClerkData(
+    String clerkId,
+    String username,
+    String? password,
+    String? firstName,
+    String? lastName,
+    String? email,
+  ) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      await _businessService.updateClerk(
+        _business!.id,
+        clerkId,
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+      );
+      
+      final index = _clerks.indexWhere((c) => c.userId == clerkId);
+      if (index != -1) {
+        final current = _clerks[index];
+        _clerks[index] = User(
+          userId: current.userId,
+          username: username,
+          firstName: firstName ?? current.firstName,
+          lastName: lastName ?? current.lastName,
+          email: email ?? current.email,
+          role: current.role,
+          businessId: current.businessId,
+          branchId: current.branchId,
+          branchName: current.branchName,
+        );
+        notifyListeners();
+      } else {
+         await refreshClerks();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteManagerData(String managerId) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      await _businessService.deleteManager(_business!.id, managerId);
+      _managers.removeWhere((m) => m.userId == managerId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteClerkData(String clerkId) async {
+    if (_business?.id == null) throw Exception('Business ID not found');
+    try {
+      await _businessService.deleteClerk(_business!.id, clerkId);
+      _clerks.removeWhere((c) => c.userId == clerkId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 

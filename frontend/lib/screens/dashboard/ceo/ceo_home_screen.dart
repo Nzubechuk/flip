@@ -175,7 +175,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: (constraints.maxWidth / crossAxisCount - 24) / 180,
+                  childAspectRatio: (constraints.maxWidth / crossAxisCount - 24) / 200,
                   children: [
                 _buildStatCard(
                   context,
@@ -427,7 +427,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: color.withOpacity(0.04), // Slightly more visible
@@ -436,14 +436,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16), // Increased padding
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(icon, size: 32, color: color), // Larger icon
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith( // Slightly smaller to avoid overflow

@@ -77,8 +77,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
       final businessService = BusinessService(apiService);
 
       if (widget.role == UserRole.manager) {
-        await businessService.updateManager(
-          businessId,
+        await businessProvider.updateManagerData(
           widget.user.userId,
           _usernameController.text.trim(),
           _passwordController.text.trim().isEmpty ? null : _passwordController.text.trim(),
@@ -86,11 +85,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
           _lastNameController.text.trim(),
           _emailController.text.trim(),
         );
-        // Refresh managers
-        await businessProvider.refreshManagers();
       } else {
-        await businessService.updateClerk(
-          businessId,
+        await businessProvider.updateClerkData(
           widget.user.userId,
           _usernameController.text.trim(),
           _passwordController.text.trim().isEmpty ? null : _passwordController.text.trim(),
@@ -98,8 +94,6 @@ class _EditUserScreenState extends State<EditUserScreen> {
           _lastNameController.text.trim(),
           _emailController.text.trim(),
         );
-        // Refresh clerks
-        await businessProvider.refreshClerks();
       }
 
       if (mounted) {

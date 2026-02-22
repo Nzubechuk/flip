@@ -549,17 +549,10 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
                           _errorMessage = null;
                         });
                         try {
-                          final authProvider = context.read<AuthProvider>();
-                          final apiService = ApiService();
-                          if (authProvider.accessToken != null) {
-                            apiService.setAccessToken(authProvider.accessToken!);
-                          }
-                          final businessService = BusinessService(apiService);
-
-                          User newUser;
+                          final businessProvider = context.read<BusinessProvider>();
+                          
                           if (role == UserRole.manager) {
-                            newUser = await businessService.registerManager(
-                              businessId,
+                            await businessProvider.createManager(
                               _usernameController.text.trim(),
                               _passwordController.text,
                               _firstNameController.text.trim(),
@@ -568,8 +561,7 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
                               _selectedBranch?.id,
                             );
                           } else {
-                            newUser = await businessService.registerClerk(
-                              businessId,
+                            await businessProvider.createClerk(
                               _usernameController.text.trim(),
                               _passwordController.text,
                               _firstNameController.text.trim(),
@@ -580,12 +572,6 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
                           }
 
                           if (mounted) {
-                            final businessProvider = context.read<BusinessProvider>();
-                            if (role == UserRole.manager) {
-                              businessProvider.addManager(newUser);
-                            } else {
-                              businessProvider.addClerk(newUser);
-                            }
                             Navigator.pop(dialogContext);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -623,14 +609,7 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
         builder: (context) => EditUserScreen(user: user, role: role),
       ),
     );
-    if (result == true && mounted) {
-      final businessProvider = context.read<BusinessProvider>();
-      if (role == UserRole.manager) {
-        await businessProvider.refreshManagers();
-      } else {
-        await businessProvider.refreshClerks();
-      }
-    }
+    // List updates are handled by the provider in EditUserScreen
   }
 
   void _showDeleteUserDialog(User user, UserRole role) {
@@ -679,11 +658,9 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
       final businessService = BusinessService(apiService);
 
       if (role == UserRole.manager) {
-        await businessService.deleteManager(businessId, user.userId);
-        businessProvider.removeManager(user.userId);
+        await businessProvider.deleteManagerData(user.userId);
       } else {
-        await businessService.deleteClerk(businessId, user.userId);
-        businessProvider.removeClerk(user.userId);
+        await businessProvider.deleteClerkData(user.userId);
       }
 
       if (mounted) {

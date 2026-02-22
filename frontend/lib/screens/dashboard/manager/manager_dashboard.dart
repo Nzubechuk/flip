@@ -25,13 +25,20 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   int _currentIndex = 0;
   bool _isLoggingOut = false;
 
-  final List<Widget> _screens = [
-    const ManagerHomeScreen(),
-    const PosScreen(),
-    const ProductsScreen(),
-    const AnalyticsScreen(),
-    const DebtsScreen(),
-  ];
+  List<Widget> _buildScreens() {
+    return [
+      const ManagerHomeScreen(),
+      const PosScreen(),
+      const ProductsScreen(),
+      Consumer<AuthProvider>(
+        builder: (context, auth, _) => AnalyticsScreen(
+          businessId: auth.user?.businessId,
+          branchId: auth.user?.branchId,
+        ),
+      ),
+      const DebtsScreen(),
+    ];
+  }
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveHelper.isMobile(context);
@@ -121,7 +128,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                 ),
               ],
             ),
-          Expanded(child: _screens[_currentIndex]),
+          Expanded(child: _buildScreens()[_currentIndex]),
         ],
       ),
       bottomNavigationBar: isMobile

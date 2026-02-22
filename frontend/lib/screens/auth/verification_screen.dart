@@ -20,6 +20,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
   final _codeController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  bool _codeSent = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
 
   void _handleVerification() async {
     final code = _codeController.text.trim();
@@ -31,17 +38,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
     setState(() => _isLoading = true);
     try {
       if (widget.isPasswordReset) {
-         // Logic handled by parent or next screen for password reset
-         // Actually for password reset, we verify the code implicitly when resetting
-         // But maybe we want to verify code first? 
-         // For now, let's just return the code to the caller (ForgotPasswordScreen)
-         Navigator.pop(context, code);
+        Navigator.pop(context, code);
       } else {
-        // Account Verification
         await _authService.verifyEmail(widget.email, code);
         if (!mounted) return;
         UiHelper.showSuccess(context, 'Account verified successfully!');
-        // Navigate to Login and clear stack
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
@@ -52,12 +53,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
-  void _resendCode() async {
+  Future<void> _sendCode() async {
     setState(() => _isLoading = true);
+    final isResend = _codeSent;
     try {
       await _authService.resendVerificationCode(widget.email);
       if (!mounted) return;
-      UiHelper.showSuccess(context, 'Verification code resent');
+      setState(() => _codeSent = true);
+      UiHelper.showSuccess(context, isResend ? 'Code resent to ${widget.email}' : 'Code sent to ${widget.email}');
     } catch (e) {
       if (!mounted) return;
       UiHelper.showError(context, e.toString());
@@ -92,18 +95,34 @@ class _VerificationScreenState extends State<VerificationScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleVerification,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
+            if (_codeSent)
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleVerification,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Verify'),
               ),
-              child: _isLoading 
-                  ? const CircularProgressIndicator()
-                  : const Text('Verify'),
-            ),
-            TextButton(
-              onPressed: _isLoading ? null : _resendCode,
-              child: const Text('Resend Code'),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _sendCode,
+                child: _isLoading && !_codeSent
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(_codeSent ? 'Resend Code' : 'Send Code'),
+              ),
             ),
           ],
         ),

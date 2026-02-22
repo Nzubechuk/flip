@@ -25,18 +25,21 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
   String? _selectedBranchName;
 
   @override
+  void initState() {
+    super.initState();
+    // Load data once after first frame instead of in build()
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final businessProvider = context.read<BusinessProvider>();
+      final businessId = widget.businessId ?? businessProvider.businessId;
+      if (businessId != null && businessProvider.branches.isEmpty && !businessProvider.isLoading) {
+        businessProvider.loadBusinessData(businessId);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final businessProvider = context.watch<BusinessProvider>();
-    
-    // Get businessId from provider if not provided
-    final businessId = widget.businessId ?? businessProvider.businessId;
-    
-    // Load data if we have businessId and data is empty
-    if (businessId != null && businessProvider.branches.isEmpty && !businessProvider.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        businessProvider.loadBusinessData(businessId);
-      });
-    }
     
     final branches = businessProvider.branches;
     final allProducts = businessProvider.allProducts;
@@ -160,7 +163,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
                                           crossAxisCount: crossAxisCount,
                                           crossAxisSpacing: 16,
                                           mainAxisSpacing: 16,
-                                          childAspectRatio: 1.3,
+                                          childAspectRatio: 1.1,
                                         ),
                                         itemCount: products.length,
                                         itemBuilder: (context, index) => _buildProductCard(products[index]),
@@ -253,7 +256,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
         onTap: () => _navigateToEdit(product),
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: color.withOpacity(0.03),
@@ -333,7 +336,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   const Icon(Icons.store_outlined, size: 16, color: Color(0xFF64748B)),

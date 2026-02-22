@@ -12,12 +12,15 @@ import 'services/sales_service.dart';
 import 'services/debt_service.dart';
 import 'services/sync_service.dart';
 import 'services/analytics_service.dart';
+import 'services/database_helper.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/auth_guard.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseHelper.initializeForPlatform();
   runApp(const FlipApp());
 }
 

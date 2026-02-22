@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:path/path.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
+
+// Conditional imports for web
+import 'database_helper_stub.dart'
+    if (dart.library.html) 'database_helper_web.dart' as db_impl;
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -13,6 +17,11 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
+  /// Call this once before using the database (e.g., in main.dart)
+  static Future<void> initializeForPlatform() async {
+    await db_impl.initDatabaseFactory();
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -20,7 +29,8 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'flip_pos.db');
+    final dbPath = await getDatabasesPath();
+    String path = '$dbPath/flip_pos.db';
     return await openDatabase(
       path,
       version: 1,
@@ -66,7 +76,7 @@ class DatabaseHelper {
       CREATE TABLE pending_products(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         productId TEXT,
-        action TEXT, -- 'create', 'update', 'delete'
+        action TEXT,
         productJson TEXT,
         createdAt TEXT
       )

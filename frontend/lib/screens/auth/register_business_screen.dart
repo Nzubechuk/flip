@@ -93,18 +93,25 @@ class _RegisterBusinessScreenState extends State<RegisterBusinessScreen> {
       appBar: AppBar(
         title: const Text('Register Business'),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: ResponsiveHelper.getPreferredWidth(context),
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 48, // account for padding
+                maxWidth: double.infinity,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: ResponsiveHelper.getPreferredWidth(context),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                   Text(
                     'Business Information',
                     style: Theme.of(context).textTheme.titleLarge,
@@ -289,11 +296,14 @@ class _RegisterBusinessScreenState extends State<RegisterBusinessScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Already have an account? Sign in'),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }

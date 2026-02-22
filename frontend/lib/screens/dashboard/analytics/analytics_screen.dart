@@ -11,8 +11,9 @@ import '../../../utils/responsive_helper.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final String? businessId;
+  final String? branchId; // Add branchId parameter
 
-  const AnalyticsScreen({super.key, this.businessId});
+  const AnalyticsScreen({super.key, this.businessId, this.branchId});
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -22,7 +23,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with RouteAware {
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
   int _lowStockThreshold = 10;
-  String? _selectedBranchId;
+  String? _selectedBranchId; // Keep this variable
 
   double _totalRevenue = 0.0;
   int _totalTransactions = 0;
@@ -35,6 +36,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
+    // Initialize with passed branchId (manager case)
+    if (widget.branchId != null) {
+      _selectedBranchId = widget.branchId;
+    }
     _loadAnalytics();
   }
 
@@ -109,6 +114,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with RouteAware {
       _loadAnalytics();
     }
   }
+  
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveHelper.isMobile(context);
@@ -142,41 +148,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with RouteAware {
                       '${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}',
                     ),
                   ),
-                  Consumer<BusinessProvider>(
-                    builder: (context, provider, child) {
-                      final branches = provider.branches;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.white,
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String?>(
-                            value: _selectedBranchId,
-                            hint: const Text('All Branches'),
-                            items: [
-                              const DropdownMenuItem(
-                                value: null,
-                                child: Text('All Branches'),
-                              ),
-                              ...branches.map((b) => DropdownMenuItem(
-                                    value: b.id,
-                                    child: Text(b.name),
-                                  )),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedBranchId = value;
-                              });
-                              _loadAnalytics();
-                            },
+                  // Only show branch selector if no branchId was passed (CEO case)
+                  if (widget.branchId == null)
+                    Consumer<BusinessProvider>(
+                      builder: (context, provider, child) {
+                        final branches = provider.branches;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white,
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String?>(
+                              value: _selectedBranchId,
+                              hint: const Text('All Branches'),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text('All Branches'),
+                                ),
+                                ...branches.map((b) => DropdownMenuItem(
+                                      value: b.id,
+                                      child: Text(b.name),
+                                    )),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedBranchId = value;
+                                });
+                                _loadAnalytics();
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
