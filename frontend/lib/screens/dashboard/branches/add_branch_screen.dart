@@ -5,6 +5,7 @@ import '../../../providers/business_provider.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/error_handler.dart';
+import '../../../utils/toast_helper.dart';
 
 class AddBranchScreen extends StatefulWidget {
   const AddBranchScreen({super.key});
@@ -73,9 +74,9 @@ class _AddBranchScreenState extends State<AddBranchScreen> {
         // No longer needed
         // await businessProvider.refreshBranches();
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Branch created successfully')),
-        );
+        if (mounted) {
+          ToastHelper.showSuccess(context, 'Branch created successfully');
+        }
         
         Navigator.of(context).pop(true);
       } catch (e) {

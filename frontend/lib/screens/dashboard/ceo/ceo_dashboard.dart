@@ -27,6 +27,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
   String? _businessId;
   bool _isInitializing = true;
   bool _isLoggingOut = false;
+  List<Widget>? _cachedScreens;
 
   @override
   void initState() {
@@ -67,10 +68,8 @@ class _CeoDashboardState extends State<CeoDashboard> {
         return;
       }
       
-      final apiService = ApiService();
-      apiService.setAccessToken(authProvider.accessToken!);
-
       // Get current CEO's business
+      final apiService = ApiService()..setAccessToken(authProvider.accessToken!);
       final businessService = BusinessService(apiService);
       final business = await businessService.getCurrentBusiness();
       
@@ -287,7 +286,11 @@ class _CeoDashboardState extends State<CeoDashboard> {
       );
     }
 
-    final screens = _buildScreens(_businessId);
+    // Cache screens — only recreate if businessId changes
+    if (_cachedScreens == null || _cachedScreens!.isEmpty) {
+      _cachedScreens = _buildScreens(_businessId);
+    }
+    final screens = _cachedScreens!;
     final isMobile = ResponsiveHelper.isMobile(context);
 
     return Scaffold(

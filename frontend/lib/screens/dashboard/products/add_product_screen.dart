@@ -7,6 +7,7 @@ import '../../../services/api_service.dart';
 import '../../../models/product.dart';
 import '../../../models/business.dart';
 import '../../../models/user.dart';
+import '../../../utils/toast_helper.dart';
 
 class AddProductScreen extends StatefulWidget {
   final String? branchId; // If provided, pre-select this branch
@@ -105,15 +106,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       // No longer needed as createProduct updates local state
       // await businessProvider.refreshAllProducts();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product added successfully')),
-      );
+      if (mounted) {
+        ToastHelper.showSuccess(context, 'Product added successfully');
+      }
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error adding product: $e')),
-      );
+      if (mounted) {
+        ToastHelper.showError(context, 'Error adding product: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {

@@ -9,6 +9,7 @@ import '../../../models/user.dart';
 import '../../../models/business.dart';
 import 'edit_user_screen.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../utils/toast_helper.dart';
 
 class CeoUsersScreen extends StatefulWidget {
   final String? businessId;
@@ -301,9 +302,9 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
     final businessId = widget.businessId ?? businessProvider.businessId;
     
     if (businessId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Business ID not found')),
-      );
+      if (mounted) {
+        ToastHelper.showError(context, 'Business ID not found');
+      }
       return;
     }
 
@@ -573,12 +574,7 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
 
                           if (mounted) {
                             Navigator.pop(dialogContext);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${role.displayName} added successfully'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            ToastHelper.showSuccess(context, '${role.displayName} added successfully');
                           }
                         } catch (e) {
                           setState(() {
@@ -644,9 +640,7 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
       
       if (businessId == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Business ID not found')),
-          );
+          ToastHelper.showError(context, 'Business ID not found');
         }
         return;
       }
@@ -664,9 +658,7 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${role.displayName} deleted successfully')),
-        );
+        ToastHelper.showSuccess(context, '${role.displayName} deleted successfully');
       }
     } catch (e) {
       if (mounted) {

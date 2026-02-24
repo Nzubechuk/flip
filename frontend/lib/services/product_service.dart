@@ -22,15 +22,23 @@ class ProductService {
           return Product.fromJson(productJson);
         }).toList();
 
-        // Cache in local database for offline use
-        await _dbHelper.saveProducts(products);
+        // Cache in local database for offline use (non-blocking)
+        try {
+          await _dbHelper.saveProducts(products);
+        } catch (dbError) {
+          debugPrint('SQLite cache failed (non-critical): $dbError');
+        }
         return products;
       }
     } catch (e) {
       // If offline or error, try to get from local database
-      final localProducts = await _dbHelper.getProducts(branchId);
-      if (localProducts.isNotEmpty) {
-        return localProducts;
+      try {
+        final localProducts = await _dbHelper.getProducts(branchId);
+        if (localProducts.isNotEmpty) {
+          return localProducts;
+        }
+      } catch (dbError) {
+        debugPrint('SQLite fallback failed: $dbError');
       }
       rethrow;
     }
@@ -76,25 +84,28 @@ class ProductService {
         id: response['productId'] ?? response['id'],
       );
 
-      // If branchId is set, refresh that branch's list
+      // Cache refresh (non-blocking — don't let SQLite errors break the flow)
       if (newProduct.branchId.isNotEmpty) {
-         // efficient update: add to local cache if possible, or just fetch
-         await getProducts(newProduct.branchId);
+        try {
+          await getProducts(newProduct.branchId);
+        } catch (e) {
+          debugPrint('Cache refresh after add failed (non-critical): $e');
+        }
       }
       return newProduct;
     } catch (e) {
-      // Offline fallback
-      final tempId = const Uuid().v4();
-      final offlineProduct = product.copyWith(id: tempId);
-      await _dbHelper.queueProduct(offlineProduct, 'create');
-      // Also save to local 'products' table so it appears in UI immediately?
-      // Yes, otherwise user won't see it until sync.
-      // But we need to distinguish it's offline? 
-      // For now, just save it. The sync service handles the rest.
-      // We might need to append it to the current cached list.
-      // Since getProducts reads from DB, saving it to DB is enough.
-      await _dbHelper.saveProducts([offlineProduct]);
-      return offlineProduct;
+      // Offline fallback — try to queue, but don't crash if SQLite fails too
+      try {
+        final tempId = const Uuid().v4();
+        final offlineProduct = product.copyWith(id: tempId);
+        await _dbHelper.queueProduct(offlineProduct, 'create');
+        await _dbHelper.saveProducts([offlineProduct]);
+        return offlineProduct;
+      } catch (dbError) {
+        debugPrint('Offline fallback also failed: $dbError');
+        // Re-throw the original API error, not the SQLite error
+        rethrow;
+      }
     }
   }
 
@@ -104,28 +115,35 @@ class ProductService {
         '/api/products/$productId/update',
         product.toJson(),
       );
-      // Update local cache
-      await _dbHelper.saveProducts([product]);
+      // Update local cache (non-blocking)
+      try {
+        await _dbHelper.saveProducts([product]);
+      } catch (dbError) {
+        debugPrint('SQLite cache update failed (non-critical): $dbError');
+      }
     } catch (e) {
       // Offline fallback
-      await _dbHelper.queueProduct(product, 'update');
-      // Update local cache so user sees change
-      await _dbHelper.saveProducts([product]);
+      try {
+        await _dbHelper.queueProduct(product, 'update');
+        await _dbHelper.saveProducts([product]);
+      } catch (dbError) {
+        debugPrint('Offline fallback failed: $dbError');
+      }
+      rethrow;
     }
   }
 
   Future<void> deleteProduct(String productId) async {
     try {
       await _apiService.delete('/api/products/$productId/delete');
-      // Remove from local cache? DatabaseHelper doesn't have deleteProduct from cache yet,
-      // only clearAll. We might need to add deleteProductFromCache.
-      // For now, we rely on refresh. But offline we can't refresh.
-      // TODO: Add deleteFromCache to DatabaseHelper
-      // For now, we just queue it. The UI might still show it until sync.
     } catch (e) {
-      await _dbHelper.queueProductDelete(productId);
-      // Remove from local view immediately
-      await _dbHelper.deleteProduct(productId);
+      try {
+        await _dbHelper.queueProductDelete(productId);
+        await _dbHelper.deleteProduct(productId);
+      } catch (dbError) {
+        debugPrint('Offline delete fallback failed: $dbError');
+      }
+      rethrow;
     }
   }
 
@@ -169,7 +187,3 @@ class ProductService {
     );
   }
 }
-
-
-
-

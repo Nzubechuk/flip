@@ -21,24 +21,53 @@ import 'screens/auth_guard.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseHelper.initializeForPlatform();
-  runApp(const FlipApp());
+
+  // Create services once at startup — not in build()
+  final authService = AuthService();
+  final apiService = ApiService();
+  final businessService = BusinessService(apiService);
+  final productService = ProductService(apiService);
+  final salesService = SalesService(apiService);
+  final debtService = DebtService(apiService);
+  final analyticsService = AnalyticsService(apiService);
+  final syncService = SyncService(apiService, salesService, debtService);
+
+  runApp(FlipApp(
+    authService: authService,
+    apiService: apiService,
+    businessService: businessService,
+    productService: productService,
+    salesService: salesService,
+    debtService: debtService,
+    analyticsService: analyticsService,
+    syncService: syncService,
+  ));
 }
 
 class FlipApp extends StatelessWidget {
-  const FlipApp({super.key});
+  final AuthService authService;
+  final ApiService apiService;
+  final BusinessService businessService;
+  final ProductService productService;
+  final SalesService salesService;
+  final DebtService debtService;
+  final AnalyticsService analyticsService;
+  final SyncService syncService;
+
+  const FlipApp({
+    super.key,
+    required this.authService,
+    required this.apiService,
+    required this.businessService,
+    required this.productService,
+    required this.salesService,
+    required this.debtService,
+    required this.analyticsService,
+    required this.syncService,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Initialize services
-    final authService = AuthService();
-    final apiService = ApiService();
-    final businessService = BusinessService(apiService);
-    final productService = ProductService(apiService);
-    final salesService = SalesService(apiService);
-    final debtService = DebtService(apiService);
-    final analyticsService = AnalyticsService(apiService);
-    final syncService = SyncService(apiService, salesService, debtService);
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -54,20 +83,17 @@ class FlipApp extends StatelessWidget {
           create: (_) => SyncProvider(syncService),
         ),
       ],
-      child: Consumer2<AuthProvider, ConnectivityProvider>(
-        builder: (context, authProvider, connectivityProvider, _) {
-          return MaterialApp(
-            title: 'Flip POS System',
-            theme: AppTheme.lightTheme,
-            debugShowCheckedModeBanner: false,
-            home: const AuthGuard(),
-            routes: {
-              '/login': (context) => const LoginScreen(),
-              '/dashboard': (context) => const DashboardScreen(),
-            },
-          );
+      child: MaterialApp(
+        title: 'Flip POS System',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        home: const AuthGuard(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/dashboard': (context) => const DashboardScreen(),
         },
       ),
     );
   }
 }
+

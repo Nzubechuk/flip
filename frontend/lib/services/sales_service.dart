@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 import 'api_service.dart';
@@ -32,12 +33,25 @@ class SalesService {
   }
 
   Future<Sale> finalizeSale(List<SaleItem> items) async {
-    final request = SaleRequest(items: items);
-    final response = await _apiService.post(
-      '/api/sales/finalize',
-      request.toJson(),
-    );
-    return Sale.fromJson(response as Map<String, dynamic>);
+    try {
+      final request = SaleRequest(items: items);
+      final response = await _apiService.post(
+        '/api/sales/finalize',
+        request.toJson(),
+      );
+      return Sale.fromJson(response as Map<String, dynamic>);
+    } catch (e) {
+      // Offline fallback: queue the sale
+      try {
+        // Assume shared branch ID from the first product or business default
+        // In POS, we usually have a branchId context. 
+        // For now, if we can't find it, we pass empty string and let sync handle it.
+        await _dbHelper.queueSale(items.map((i) => i.toJson()).toList(), '');
+      } catch (dbError) {
+        debugPrint('SQLite sale queuing failed: $dbError');
+      }
+      rethrow;
+    }
   }
 }
 

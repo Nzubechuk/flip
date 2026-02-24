@@ -6,6 +6,7 @@ import '../../../providers/business_provider.dart';
 import '../../../services/product_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/product.dart';
+import '../../../utils/toast_helper.dart';
 
 class EditProductScreen extends StatefulWidget {
   final Product product;
@@ -95,10 +96,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
       await businessProvider.updateProduct(updatedProduct);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully')),
-        );
+      if (mounted) {
+        ToastHelper.showSuccess(context, 'Product updated successfully');
         Navigator.of(context).pop(true);
+      }
       }
     } catch (e) {
       if (mounted) {

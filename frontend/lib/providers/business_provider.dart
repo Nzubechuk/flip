@@ -53,37 +53,64 @@ class BusinessProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load branches
-      _branches = await _businessService.getBranches(businessId);
-      
-      // Load managers and clerks
-      _managers = await _businessService.getManagers(businessId);
-      _clerks = await _businessService.getClerks(businessId);
-
-      // Load all products for the business (includes global products and all branches)
-      _allProducts = await _productService.getBusinessProducts(businessId);
-
-      // Load debts
-      if (_apiService.accessToken != null) {
-        // Ensure tokens are synced if needed, but ApiService is shared in main.dart
-      }
-      final debts = await _debtService.getDebtsByBusiness(businessId);
-      _debts = debts;
-      _totalDebtsAmount = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
-
-      // Load daily sales
-      final now = DateTime.now();
-      // Using same start/end date gets sales for that specific day
-      _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now.add(const Duration(days: 1))); // Global for business
-
-      notifyListeners();
+      // Load everything in parallel to avoid one hang blocking everything
+      await Future.wait([
+        _loadBranches(businessId),
+        _loadManagersAndClerks(businessId),
+        _loadProducts(businessId),
+        _loadDebts(businessId),
+        _loadAnalytics(businessId),
+      ]);
     } catch (e) {
+      debugPrint('Error in loadBusinessData: $e');
       _errorMessage = e.toString();
-      notifyListeners();
-      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadBranches(String businessId) async {
+    try {
+      _branches = await _businessService.getBranches(businessId);
+    } catch (e) {
+      debugPrint('Error loading branches: $e');
+    }
+  }
+
+  Future<void> _loadManagersAndClerks(String businessId) async {
+    try {
+      _managers = await _businessService.getManagers(businessId);
+      _clerks = await _businessService.getClerks(businessId);
+    } catch (e) {
+      debugPrint('Error loading users: $e');
+    }
+  }
+
+  Future<void> _loadProducts(String businessId) async {
+    try {
+      _allProducts = await _productService.getBusinessProducts(businessId);
+    } catch (e) {
+      debugPrint('Error loading products: $e');
+    }
+  }
+
+  Future<void> _loadDebts(String businessId) async {
+    try {
+      final debts = await _debtService.getDebtsByBusiness(businessId);
+      _debts = debts;
+      _totalDebtsAmount = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
+    } catch (e) {
+      debugPrint('Error loading debts: $e');
+    }
+  }
+
+  Future<void> _loadAnalytics(String businessId) async {
+    try {
+      final now = DateTime.now();
+      _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now.add(const Duration(days: 1)));
+    } catch (e) {
+      debugPrint('Error loading analytics: $e');
     }
   }
 

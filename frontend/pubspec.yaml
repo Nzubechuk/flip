@@ -26,6 +26,7 @@ dependencies:
   
   # UI Components
   flutter_svg: ^2.0.9
+  cherry_toast: ^1.2.0
   
   # Utilities
   intl: ^0.20.2

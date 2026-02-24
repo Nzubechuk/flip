@@ -9,6 +9,7 @@ import '../../../models/business.dart';
 import 'add_branch_screen.dart';
 import 'edit_branch_screen.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../utils/toast_helper.dart';
 
 class BranchesScreen extends StatefulWidget {
   final String? businessId;
@@ -34,9 +35,9 @@ class _BranchesScreenState extends State<BranchesScreen> {
       await context.read<BusinessProvider>().refreshBranches();
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error refreshing branches: $e')),
-        );
+      if (mounted) {
+         ToastHelper.showError(context, 'Error refreshing branches: $e');
+      }
       }
     }
   }
@@ -320,9 +321,9 @@ class _BranchesScreenState extends State<BranchesScreen> {
       await businessProvider.deleteBranch(branch.id);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Branch deleted successfully')),
-        );
+      if (mounted) {
+        ToastHelper.showSuccess(context, 'Branch deleted successfully');
+      }
       }
     } catch (e) {
       if (mounted) {
