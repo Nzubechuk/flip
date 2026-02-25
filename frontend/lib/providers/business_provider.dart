@@ -28,7 +28,11 @@ class BusinessProvider with ChangeNotifier {
   List<Debt> _debts = [];
   double _totalDebtsAmount = 0.0;
   double _dailySalesTotal = 0.0;
-  bool _isLoading = false;
+  bool _isBranchesLoading = false;
+  bool _isManagersLoading = false;
+  bool _isProductsLoading = false;
+  bool _isDebtsLoading = false;
+  bool _isAnalyticsLoading = false;
   String? _errorMessage;
 
   BusinessProvider(this._businessService, this._productService, this._debtService, this._analyticsService, this._apiService, this._salesService);
@@ -41,76 +45,109 @@ class BusinessProvider with ChangeNotifier {
   List<Debt> get debts => _debts;
   double get totalDebtsAmount => _totalDebtsAmount;
   double get dailySalesTotal => _dailySalesTotal;
-  bool get isLoading => _isLoading;
+  bool get isLoading => _isBranchesLoading || _isManagersLoading || _isProductsLoading || _isDebtsLoading || _isAnalyticsLoading;
+  bool get isBranchesLoading => _isBranchesLoading;
+  bool get isManagersLoading => _isManagersLoading;
+  bool get isProductsLoading => _isProductsLoading;
+  bool get isDebtsLoading => _isDebtsLoading;
+  bool get isAnalyticsLoading => _isAnalyticsLoading;
   String? get errorMessage => _errorMessage;
 
   // Get business ID - will be set after loading business info
   String? get businessId => _business?.id;
 
   Future<void> loadBusinessData(String businessId) async {
-    _isLoading = true;
+    _isBranchesLoading = true;
+    _isManagersLoading = true;
+    _isProductsLoading = true;
+    _isDebtsLoading = true;
+    _isAnalyticsLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      // Load everything in parallel to avoid one hang blocking everything
-      await Future.wait([
-        _loadBranches(businessId),
-        _loadManagersAndClerks(businessId),
-        _loadProducts(businessId),
-        _loadDebts(businessId),
-        _loadAnalytics(businessId),
-      ]);
-    } catch (e) {
-      debugPrint('Error in loadBusinessData: $e');
-      _errorMessage = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    // Start all loads in parallel
+    final branchesFuture = _loadBranches(businessId);
+    final peopleFuture = _loadManagersAndClerks(businessId);
+    final productsFuture = _loadProducts(businessId);
+    final debtsFuture = _loadDebts(businessId);
+    final analyticsFuture = _loadAnalytics(businessId);
+
+    // We don't await Future.wait because we want notifyListeners to fire as each completes
+    await Future.wait([
+      branchesFuture,
+      peopleFuture,
+      productsFuture,
+      debtsFuture,
+      analyticsFuture,
+    ]);
   }
 
   Future<void> _loadBranches(String businessId) async {
+    _isBranchesLoading = true;
+    notifyListeners();
     try {
       _branches = await _businessService.getBranches(businessId);
     } catch (e) {
       debugPrint('Error loading branches: $e');
+    } finally {
+      _isBranchesLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> _loadManagersAndClerks(String businessId) async {
+    _isManagersLoading = true;
+    notifyListeners();
     try {
       _managers = await _businessService.getManagers(businessId);
       _clerks = await _businessService.getClerks(businessId);
     } catch (e) {
       debugPrint('Error loading users: $e');
+    } finally {
+      _isManagersLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> _loadProducts(String businessId) async {
+    _isProductsLoading = true;
+    notifyListeners();
     try {
       _allProducts = await _productService.getBusinessProducts(businessId);
     } catch (e) {
       debugPrint('Error loading products: $e');
+    } finally {
+      _isProductsLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> _loadDebts(String businessId) async {
+    _isDebtsLoading = true;
+    notifyListeners();
     try {
       final debts = await _debtService.getDebtsByBusiness(businessId);
       _debts = debts;
       _totalDebtsAmount = debts.fold(0.0, (sum, d) => sum + d.totalAmount);
     } catch (e) {
       debugPrint('Error loading debts: $e');
+    } finally {
+      _isDebtsLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> _loadAnalytics(String businessId) async {
+    _isAnalyticsLoading = true;
+    notifyListeners();
     try {
       final now = DateTime.now();
       _dailySalesTotal = await _analyticsService.getTotalRevenue(now, now.add(const Duration(days: 1)));
     } catch (e) {
       debugPrint('Error loading analytics: $e');
+    } finally {
+      _isAnalyticsLoading = false;
+      notifyListeners();
     }
   }
 

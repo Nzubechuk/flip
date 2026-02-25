@@ -5,6 +5,7 @@ import '../../../models/debt.dart';
 import '../../../models/user.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/business_provider.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../services/api_service.dart';
 import '../../../services/debt_service.dart';
 import '../../../utils/ui_helper.dart';
@@ -104,9 +105,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
       _debts = _debts.where((debt) => debt.status == 'PENDING').toList();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading debts: $e')),
-        );
+        ToastHelper.showError(context, 'Error loading debts: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/sync_provider.dart';
+import '../../utils/toast_helper.dart';
 import '../../models/user.dart';
 import 'ceo/ceo_dashboard.dart';
 import 'manager/manager_dashboard.dart';
@@ -44,12 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       
       syncProvider.sync(authProvider.user?.businessId).then((_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Synchronization complete. All data is up to date.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          ToastHelper.showSuccess(context, 'Synchronization complete. All data is up to date.');
         }
       });
     }

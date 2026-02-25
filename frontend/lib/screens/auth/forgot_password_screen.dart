@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import '../../../services/auth_service.dart';
+import '../../../utils/toast_helper.dart';
 import '../../utils/error_handler.dart';
 import 'reset_password_screen.dart';
 import 'verification_screen.dart';
@@ -19,9 +20,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _handleReset() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email address')),
-      );
+      if (mounted) {
+        ToastHelper.showSuccess(context, 'Verification code sent to your email');
+      }
       return;
     }
 

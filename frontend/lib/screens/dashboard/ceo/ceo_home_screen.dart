@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/business_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/business.dart';
@@ -62,9 +63,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading dashboard: $e')),
-        );
+        ToastHelper.showError(context, 'Error loading background data: $e');
       }
     }
   }

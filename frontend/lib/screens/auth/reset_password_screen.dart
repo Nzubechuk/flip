@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import '../../../services/auth_service.dart';
+import '../../../utils/toast_helper.dart';
 import '../../utils/error_handler.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -32,23 +33,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the reset token')),
-      );
+      if (mounted) {
+        ToastHelper.showError(context, 'Please enter the reset token');
+      }
       return;
     }
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
+      if (mounted) {
+        ToastHelper.showError(context, 'Password must be at least 6 characters');
+      }
       return;
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      if (mounted) {
+        ToastHelper.showSuccess(context, 'Password reset successful');
+      }
       return;
     }
 

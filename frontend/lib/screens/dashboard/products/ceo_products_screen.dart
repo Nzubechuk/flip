@@ -5,6 +5,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../services/product_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/product.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../models/business.dart';
 import '../../../utils/currency_formatter.dart';
 import 'add_product_screen.dart';
@@ -118,7 +119,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
           
           // Products List
           Expanded(
-            child: businessProvider.isLoading
+            child: businessProvider.isProductsLoading
                 ? const Center(child: CircularProgressIndicator())
                 : products.isEmpty
                     ? Center(
@@ -456,9 +457,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
       await businessProvider.deleteProduct(product.id);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product deleted successfully')),
-        );
+        ToastHelper.showSuccess(context, 'Product deleted successfully');
       }
     } catch (e) {
       if (mounted) {

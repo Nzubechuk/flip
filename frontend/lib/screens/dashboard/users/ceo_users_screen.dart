@@ -662,11 +662,8 @@ class _CeoUsersScreenState extends State<CeoUsersScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting user: ${e.toString()}')),
-        );
+        ToastHelper.showError(context, 'Error performing action: $e');
       }
     }
   }
 }
-

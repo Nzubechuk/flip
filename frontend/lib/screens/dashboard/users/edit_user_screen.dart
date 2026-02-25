@@ -5,6 +5,7 @@ import '../../../providers/business_provider.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/user.dart';
+import '../../../utils/toast_helper.dart';
 
 class EditUserScreen extends StatefulWidget {
   final User user;
@@ -97,9 +98,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${widget.role.displayName} updated successfully')),
-        );
+        ToastHelper.showSuccess(context, '${widget.role.displayName} updated successfully');
         Navigator.of(context).pop(true);
       }
     } catch (e) {

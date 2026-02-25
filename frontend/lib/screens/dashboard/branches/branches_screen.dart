@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/business_provider.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/error_handler.dart';
@@ -321,20 +322,12 @@ class _BranchesScreenState extends State<BranchesScreen> {
       await businessProvider.deleteBranch(branch.id);
       
       if (mounted) {
-      if (mounted) {
         ToastHelper.showSuccess(context, 'Branch deleted successfully');
-      }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ErrorHandler.formatException(e))),
-        );
+        ToastHelper.showError(context, ErrorHandler.formatException(e));
       }
     }
   }
 }
-
-
-
-

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/business_provider.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../services/api_service.dart';
 import '../../../services/debt_service.dart';
 import '../../../services/sales_service.dart';
@@ -168,27 +169,21 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-      UiHelper.showSuccess(context, 'Debt recorded successfully');
+      ToastHelper.showSuccess(context, 'Debt recorded successfully');
     } catch (e) {
       debugPrint('Error recording debt: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ErrorHandler.formatException(e)),
-          duration: const Duration(seconds: 5),
-          action: SnackBarAction(
-            label: 'Details',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Debt Recording Failed'),
-                  content: SelectableText(ErrorHandler.formatException(e)),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-                ),
-              );
-            },
-          ),
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Debt Recording Failed'),
+          content: SelectableText(ErrorHandler.formatException(e)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
     } finally {
@@ -262,68 +257,68 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                   ],
                 ),
               ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _consumerNameController,
-              decoration: const InputDecoration(
-                labelText: 'Consumer Name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-            ),
-          ),
-          if (authProvider.user?.role == UserRole.ceo && widget.branchId == null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: DropdownButtonFormField<String>(
-                value: _selectedBranchId,
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: _consumerNameController,
                 decoration: const InputDecoration(
-                  labelText: 'Select Branch',
+                  labelText: 'Consumer Name',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.store),
+                  prefixIcon: Icon(Icons.person),
                 ),
-                items: branches.map((b) => DropdownMenuItem(
-                  value: b.id,
-                  child: Text(b.name),
-                )).toList(),
-                onChanged: (val) => setState(() => _selectedBranchId = val),
               ),
             ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _barcodeController,
-              decoration: InputDecoration(
-                hintText: 'Scan or enter barcode',
-                prefixIcon: const Icon(Icons.qr_code_scanner),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () {
-                    if (_barcodeController.text.isNotEmpty) {
-                      _scanProduct(_barcodeController.text.trim());
-                    }
-                  },
+            if (authProvider.user?.role == UserRole.ceo && widget.branchId == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedBranchId,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Branch',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.store),
+                  ),
+                  items: branches.map((b) => DropdownMenuItem(
+                    value: b.id,
+                    child: Text(b.name),
+                  )).toList(),
+                  onChanged: (val) => setState(() => _selectedBranchId = val),
                 ),
-                border: const OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onSubmitted: (value) {
-                if (value.isNotEmpty) _scanProduct(value.trim());
-              },
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _barcodeController,
+                decoration: InputDecoration(
+                  hintText: 'Scan or enter barcode',
+                  prefixIcon: const Icon(Icons.qr_code_scanner),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: () {
+                      if (_barcodeController.text.isNotEmpty) {
+                        _scanProduct(_barcodeController.text.trim());
+                      }
+                    },
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) _scanProduct(value.trim());
+                },
+              ),
             ),
-          ),
-          if (_cart.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32.0),
-              child: Center(child: Text('No items added yet')),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _cart.length,
+            if (_cart.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Center(child: Text('No items added yet')),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _cart.length,
                 itemBuilder: (context, index) {
                   final item = _cart[index];
                   return ListTile(
@@ -354,37 +349,46 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                     ),
                   );
                 },
-            ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Debt:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text(CurrencyFormatter.format(_total), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _recordDebt,
-                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                    child: _isSaving ? const CircularProgressIndicator() : const Text('Record Debt'),
+              ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Debt:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(CurrencyFormatter.format(_total), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _recordDebt,
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                      child: _isSaving ? const CircularProgressIndicator() : const Text('Record Debt'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildStatTile(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
 }

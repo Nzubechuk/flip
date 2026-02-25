@@ -12,6 +12,7 @@ import '../debts/debts_screen.dart';
 import '../pos/pos_screen.dart';
 import '../../../utils/ui_helper.dart';
 import '../../../utils/currency_formatter.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../utils/responsive_helper.dart';
 
 class ManagerDashboard extends StatefulWidget {
@@ -256,9 +257,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
       debugPrint('Error loading manager stats: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load stats: $e')),
-        );
+        ToastHelper.showError(context, 'Failed to load stats: $e');
       }
     }
   }

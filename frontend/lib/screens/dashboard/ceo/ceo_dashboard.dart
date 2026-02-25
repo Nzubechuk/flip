@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/business_provider.dart';
+import '../../../utils/toast_helper.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import 'ceo_home_screen.dart';
@@ -333,9 +334,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
                           setState(() {
                             _isLoggingOut = false;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error logging out: $e')),
-                          );
+                          ToastHelper.showError(context, 'Error logging out: $e');
                         }
                       }
                     }

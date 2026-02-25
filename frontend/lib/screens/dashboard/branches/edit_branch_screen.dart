@@ -5,6 +5,7 @@ import '../../../providers/business_provider.dart';
 import '../../../services/business_service.dart';
 import '../../../services/api_service.dart';
 import '../../../models/business.dart';
+import '../../../utils/toast_helper.dart';
 
 class EditBranchScreen extends StatefulWidget {
   final Branch branch;
@@ -72,12 +73,10 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
         if (!mounted) return;
         
         // await businessProvider.refreshBranches();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Branch updated successfully')),
-        );
-        
-        Navigator.of(context).pop(true);
+        if (mounted) {
+          ToastHelper.showSuccess(context, 'Branch updated successfully');
+          Navigator.of(context).pop(true);
+        }
       } catch (e) {
         setState(() {
           _errorMessage = e.toString().replaceAll('Exception: ', '');
