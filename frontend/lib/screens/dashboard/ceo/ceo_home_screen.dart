@@ -393,17 +393,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       } else {
-         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch WhatsApp')),
-          );
-        }
-      }
-    } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error launching report: $e')),
-        );
+        ToastHelper.showError(context, 'Error launching report: $e');
       }
     }
   }

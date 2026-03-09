@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import 'api_service.dart';
@@ -23,11 +24,9 @@ class ProductService {
         }).toList();
 
         // Cache in local database for offline use (non-blocking)
-        try {
-          await _dbHelper.saveProducts(products);
-        } catch (dbError) {
+        unawaited(_dbHelper.saveProducts(products).catchError((dbError) {
           debugPrint('SQLite cache failed (non-critical): $dbError');
-        }
+        }));
         return products;
       }
     } catch (e) {
@@ -49,7 +48,12 @@ class ProductService {
     try {
       final response = await _apiService.get('/api/products/business/$businessId/all');
       if (response is List) {
-        return response.map((json) => Product.fromJson(Map<String, dynamic>.from(json))).toList();
+        final products = response.map((json) => Product.fromJson(Map<String, dynamic>.from(json))).toList();
+        // Cache in local database for offline use (non-blocking)
+        unawaited(_dbHelper.saveProducts(products).catchError((dbError) {
+          debugPrint('SQLite business cache failed (non-critical): $dbError');
+        }));
+        return products;
       }
     } catch (e) {
       debugPrint('Error loading business products: $e');
@@ -86,11 +90,9 @@ class ProductService {
 
       // Cache refresh (non-blocking — don't let SQLite errors break the flow)
       if (newProduct.branchId.isNotEmpty) {
-        try {
-          await getProducts(newProduct.branchId);
-        } catch (e) {
-          debugPrint('Cache refresh after add failed (non-critical): $e');
-        }
+        unawaited(getProducts(newProduct.branchId).catchError((e) {
+           debugPrint('Cache refresh after add failed (non-critical): $e');
+        }));
       }
       return newProduct;
     } catch (e) {
@@ -116,11 +118,9 @@ class ProductService {
         product.toJson(),
       );
       // Update local cache (non-blocking)
-      try {
-        await _dbHelper.saveProducts([product]);
-      } catch (dbError) {
+      unawaited(_dbHelper.saveProducts([product]).catchError((dbError) {
         debugPrint('SQLite cache update failed (non-critical): $dbError');
-      }
+      }));
     } catch (e) {
       // Offline fallback
       try {

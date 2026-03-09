@@ -24,11 +24,13 @@ class SyncService {
     debugPrint('Starting synchronization...');
 
     try {
-      await _syncProducts();
-      await _syncSales();
-      if (businessId != null) {
-        await _syncDebts(businessId);
-      }
+      // Add a global timeout for the entire sync process
+      await Future.wait([
+        _syncProducts().timeout(const Duration(seconds: 30)),
+        _syncSales().timeout(const Duration(seconds: 30)),
+        if (businessId != null) 
+          _syncDebts(businessId).timeout(const Duration(seconds: 30)),
+      ]);
       debugPrint('Synchronization completed successfully.');
     } catch (e) {
       debugPrint('Error during synchronization: $e');

@@ -30,9 +30,11 @@ class BusinessProvider with ChangeNotifier {
   double _dailySalesTotal = 0.0;
   bool _isBranchesLoading = false;
   bool _isManagersLoading = false;
+  bool _isClerksLoading = false; // Added
   bool _isProductsLoading = false;
   bool _isDebtsLoading = false;
   bool _isAnalyticsLoading = false;
+  bool _isDataLoading = false; // Guard for loadBusinessData // Added
   String? _errorMessage;
 
   BusinessProvider(this._businessService, this._productService, this._debtService, this._analyticsService, this._apiService, this._salesService);
@@ -45,78 +47,106 @@ class BusinessProvider with ChangeNotifier {
   List<Debt> get debts => _debts;
   double get totalDebtsAmount => _totalDebtsAmount;
   double get dailySalesTotal => _dailySalesTotal;
-  bool get isLoading => _isBranchesLoading || _isManagersLoading || _isProductsLoading || _isDebtsLoading || _isAnalyticsLoading;
+  bool get isLoading => _isBranchesLoading || _isManagersLoading || _isClerksLoading || _isProductsLoading || _isDebtsLoading || _isAnalyticsLoading || _isDataLoading; // Modified
   bool get isBranchesLoading => _isBranchesLoading;
   bool get isManagersLoading => _isManagersLoading;
+  bool get isClerksLoading => _isClerksLoading; // Added
   bool get isProductsLoading => _isProductsLoading;
   bool get isDebtsLoading => _isDebtsLoading;
   bool get isAnalyticsLoading => _isAnalyticsLoading;
+  bool get isDataLoading => _isDataLoading; // Added
   String? get errorMessage => _errorMessage;
 
   // Get business ID - will be set after loading business info
   String? get businessId => _business?.id;
 
-  Future<void> loadBusinessData(String businessId) async {
+  Future<void> loadBusinessData(String businessId, {bool force = false}) async {
+    if (_isDataLoading && !force) return;
+    _isDataLoading = true;
+    
+    // Reset flags
     _isBranchesLoading = true;
-    _isManagersLoading = true;
     _isProductsLoading = true;
+    _isManagersLoading = true;
+    _isClerksLoading = true;
     _isDebtsLoading = true;
     _isAnalyticsLoading = true;
-    _errorMessage = null;
+    _errorMessage = null; // Added
     notifyListeners();
 
-    // Start all loads in parallel
-    final branchesFuture = _loadBranches(businessId);
-    final peopleFuture = _loadManagersAndClerks(businessId);
-    final productsFuture = _loadProducts(businessId);
-    final debtsFuture = _loadDebts(businessId);
-    final analyticsFuture = _loadAnalytics(businessId);
-
-    // We don't await Future.wait because we want notifyListeners to fire as each completes
-    await Future.wait([
-      branchesFuture,
-      peopleFuture,
-      productsFuture,
-      debtsFuture,
-      analyticsFuture,
-    ]);
-  }
-
-  Future<void> _loadBranches(String businessId) async {
-    _isBranchesLoading = true;
-    notifyListeners();
     try {
-      _branches = await _businessService.getBranches(businessId);
+      // Branches
+      final branchesFuture = _businessService.getBranches(businessId).then((data) {
+        _branches = data;
+        _isBranchesLoading = false;
+        notifyListeners();
+      }).catchError((e) {
+        _isBranchesLoading = false;
+        notifyListeners();
+        debugPrint('Error loading branches: $e');
+      });
+
+      // Products
+      final productsFuture = _productService.getBusinessProducts(businessId).then((data) {
+        _allProducts = data;
+        _isProductsLoading = false;
+        notifyListeners();
+      }).catchError((e) {
+        _isProductsLoading = false;
+        notifyListeners();
+        debugPrint('Error loading products: $e');
+      });
+
+      // Staff (Managers and Clerks)
+      final staffFuture = _businessService.getBusinessStaff(businessId).then((staff) {
+        _managers = staff.where((u) => u.role == UserRole.manager).toList();
+        _isManagersLoading = false;
+        _clerks = staff.where((u) => u.role == UserRole.clerk).toList();
+        _isClerksLoading = false;
+        notifyListeners();
+      }).catchError((e) {
+        _isManagersLoading = false;
+        _isClerksLoading = false;
+        notifyListeners();
+        debugPrint('Error loading staff: $e');
+      });
+
+      // Debts
+      final debtsFuture = _debtService.getDebtsByBusiness(businessId).then((data) { // Changed to getDebtsByBusiness
+        _debts = data;
+        _totalDebtsAmount = data.fold(0.0, (sum, d) => sum + d.totalAmount); // Added
+        _isDebtsLoading = false;
+        notifyListeners();
+      }).catchError((e) {
+        _isDebtsLoading = false;
+        notifyListeners();
+        debugPrint('Error loading debts: $e');
+      });
+
+      // Analytics (Daily Sales)
+      final analyticsFuture = _refreshAnalytics(businessId).then((_) {
+        _isAnalyticsLoading = false;
+        notifyListeners();
+      }).catchError((e) {
+        _isAnalyticsLoading = false;
+        notifyListeners();
+        debugPrint('Error loading analytics: $e');
+      });
+
+      // Wait for all to complete but don't let one failure stop others
+      await Future.wait([
+        branchesFuture,
+        productsFuture,
+        staffFuture,
+        debtsFuture,
+        analyticsFuture,
+      ]);
     } catch (e) {
-      debugPrint('Error loading branches: $e');
+      debugPrint('General error in loadBusinessData: $e');
+      _errorMessage = 'Failed to load business data: $e'; // Added
     } finally {
+      // Ensure all flags are cleared even on catastrophic failure
       _isBranchesLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> _loadManagersAndClerks(String businessId) async {
-    _isManagersLoading = true;
-    notifyListeners();
-    try {
-      _managers = await _businessService.getManagers(businessId);
-      _clerks = await _businessService.getClerks(businessId);
-    } catch (e) {
-      debugPrint('Error loading users: $e');
-    } finally {
-      _isManagersLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> _loadProducts(String businessId) async {
-    _isProductsLoading = true;
-    notifyListeners();
-    try {
-      _allProducts = await _productService.getBusinessProducts(businessId);
-    } catch (e) {
-      debugPrint('Error loading products: $e');
-    } finally {
       _isProductsLoading = false;
       notifyListeners();
     }

@@ -195,17 +195,11 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
             heroTag: 'barcode',
             onPressed: () async {
               if (branches.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please create a branch first'),
-                  ),
-                );
+                ToastHelper.showWarning(context, 'Please create a branch first');
                 return;
               }
               // TODO: Navigate to barcode scan with branch selection
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Barcode scan coming soon')),
-              );
+              ToastHelper.showInfo(context, 'Barcode scan coming soon');
             },
             child: const Icon(Icons.qr_code_scanner),
           ),
@@ -214,11 +208,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
             heroTag: 'add',
             onPressed: () async {
               if (branches.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please create a branch first'),
-                  ),
-                );
+                ToastHelper.showWarning(context, 'Please create a branch first');
                 return;
               }
               
@@ -461,9 +451,7 @@ class _CeoProductsScreenState extends State<CeoProductsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting product: ${e.toString()}')),
-        );
+        ToastHelper.showError(context, 'Error deleting product: ${e.toString()}');
       }
     }
   }

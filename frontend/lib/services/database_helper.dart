@@ -19,7 +19,14 @@ class DatabaseHelper {
 
   /// Call this once before using the database (e.g., in main.dart)
   static Future<void> initializeForPlatform() async {
-    await db_impl.initDatabaseFactory();
+    try {
+      debugPrint('Initializing database for current platform...');
+      await db_impl.initDatabaseFactory();
+      debugPrint('Database factory initialized.');
+    } catch (e) {
+      debugPrint('CRITICAL: Database initialization failed: $e');
+      rethrow;
+    }
   }
 
   Future<Database> get database async {

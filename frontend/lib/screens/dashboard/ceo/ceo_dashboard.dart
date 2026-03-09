@@ -59,12 +59,7 @@ class _CeoDashboardState extends State<CeoDashboard> {
           setState(() {
             _isInitializing = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Not authenticated. Please login again.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          ToastHelper.showWarning(context, 'Not authenticated. Please login again.');
         }
         return;
       }
